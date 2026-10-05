@@ -9,7 +9,8 @@ import io
 ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("blue")
 
-API_URL = "http://localhost:5000/api"
+# Environment-aware API URL for container/Railway deployment
+API_URL = os.getenv("API_URL", "http://localhost:5000/api")
 
 class PinDialog(ctk.CTkToplevel):
     def __init__(self, parent, title="Authorize Transaction"):
@@ -310,8 +311,7 @@ class CustomerApp(ctk.CTk):
                 return messagebox.showerror("Error", "Fill all fields.", parent=popup)
             
             dialog = PinDialog(self, title="Authorize Airtime")
-            if not dialog.pin:
-                return
+            if not dialog.pin: return
             
             try:
                 res = requests.post(f"{API_URL}/user/airtime", json={"phone": self.current_user['phone'], "network": net, "bumberOrPhone": ph, "amount": float(amt), "pin": dialog.pin})
@@ -352,17 +352,16 @@ class CustomerApp(ctk.CTk):
 
         def execute():
             prov = prov_menu.get()
-            cid = id_entry.get().strip()
+            uid = id_entry.get().strip()
             amt = amt_entry.get().strip()
-            if not cid or not amt:
+            if not uid or not amt:
                 return messagebox.showerror("Error", "Fill all fields.", parent=popup)
             
             dialog = PinDialog(self, title="Authorize Betting Funding")
-            if not dialog.pin:
-                return
-            
+            if not dialog.pin: return
+
             try:
-                res = requests.post(f"{API_URL}/user/betting", json={"phone": self.current_user['phone'], "provider": prov, "customerId": cid, "amount": float(amt), "pin": dialog.pin})
+                res = requests.post(f"{API_URL}/user/betting", json={"phone": self.current_user['phone'], "provider": prov, "customerId": uid, "amount": float(amt), "pin": dialog.pin})
                 data = res.json()
                 if res.status_code == 200:
                     messagebox.showinfo("Success", data.get("message", "Betting account funded!"))
@@ -370,430 +369,242 @@ class CustomerApp(ctk.CTk):
                     popup.destroy()
                     self.load_overview_tab()
                 else:
-                    messagebox.showerror("Error", data.get("message", "Failed."), parent=popup)
+                    messagebox.showerror("Error", data.get("message", "Funding failed."), parent=popup)
             except Exception as e:
                 messagebox.showerror("Error", str(e), parent=popup)
 
-        ctk.CTkButton(popup, text="Fund Bet Account", command=execute, fg_color="#d97706", hover_color="#b45309", width=350, height=44, font=ctk.CTkFont(size=14, weight="bold")).pack(pady=25)
+        ctk.CTkButton(popup, text="Fund Bet Account", command=execute, fg_color="#f59e0b", hover_color="#d97706", width=350, height=44, font=ctk.CTkFont(size=14, weight="bold")).pack(pady=25)
 
     def open_card_modal(self):
         popup = ctk.CTkToplevel(self)
-        popup.title("PayDesktop ATM Card")
-        popup.geometry("420x320")
+        popup.title("Virtual / Physical ATM Card")
+        popup.geometry("440x360")
         popup.configure(fg_color="#0f172a")
         popup.transient(self)
         popup.grab_set()
 
-        ctk.CTkLabel(popup, text="💳 ATM Card Management", font=ctk.CTkFont(size=18, weight="bold"), text_color="#38bdf8").pack(pady=(25, 20))
+        ctk.CTkLabel(popup, text="💳 PayDesktop Debit Card", font=ctk.CTkFont(size=18, weight="bold"), text_color="#38bdf8").pack(pady=(25, 15))
 
         status = self.current_user.get('cardStatus', 'NOT_REQUESTED')
-        
-        if status == 'ASSIGNED':
-            card_info = self.current_user.get('cardDetails', {})
-            ctk.CTkLabel(popup, text=f"Card Number:\n{card_info.get('cardNumber', 'N/A')}", font=ctk.CTkFont(size=16, weight="bold"), text_color="#10b981").pack(pady=10)
-            ctk.CTkLabel(popup, text=f"Expiry: {card_info.get('expiry', 'N/A')} | CVV: {card_info.get('cvv', 'N/A')}", font=ctk.CTkFont(size=14), text_color="#cbd5e1").pack(pady=10)
-        else:
-            ctk.CTkLabel(popup, text=f"Card Status: {status}", font=ctk.CTkFont(size=14, weight="bold"), text_color="#f59e0b").pack(pady=15)
-            
-            def request_card():
-                try:
-                    res = requests.post(f"{API_URL}/user/request-card", json={"phone": self.current_user['phone']})
-                    data = res.json()
-                    if res.status_code == 200:
-                        messagebox.showinfo("Success", "ATM Card request submitted successfully!")
-                        self.current_user['cardStatus'] = 'PENDING'
-                        popup.destroy()
-                    else:
-                        messagebox.showerror("Error", data.get("message", "Failed."))
-                except Exception as e:
-                    messagebox.showerror("Error", str(e))
+        card_info_frame = ctk.CTkFrame(popup, fg_color="#1e293b", corner_radius=14, width=380, height=140)
+        card_info_frame.pack(padx=30, pady=10)
+        card_info_frame.pack_propagate(False)
 
-            ctk.CTkButton(popup, text="Request Physical / Virtual Card", command=request_card, fg_color="#2563eb", width=320, height=44, font=ctk.CTkFont(size=14, weight="bold")).pack(pady=20)
+        if status == 'ASSIGNED':
+            ctk.CTkLabel(card_info_frame, text="PayDesktop Bank Debit Card", font=ctk.CTkFont(size=14, weight="bold"), text_color="#fbbf24").pack(pady=(15, 5))
+            ctk.CTkLabel(card_info_frame, text="**** **** **** 8892", font=ctk.CTkFont(size=16, weight="bold"), text_color="#ffffff").pack(pady=2)
+            ctk.CTkLabel(card_info_frame, text=f"Cardholder: {self.current_user['name']} | Status: Active", font=ctk.CTkFont(size=12), text_color="#94a3b8").pack(pady=(5, 0))
+        else:
+            ctk.CTkLabel(card_info_frame, text=f"Card Status: {status}", font=ctk.CTkFont(size=14, weight="bold"), text_color="#ef4444").pack(pady=(35, 10))
+            ctk.CTkLabel(card_info_frame, text="Request a card from branch admin or wait for approval.", font=ctk.CTkFont(size=12), text_color="#94a3b8").pack()
+
+        def request_card():
+            try:
+                res = requests.post(f"{API_URL}/user/card/request", json={"accountNo": self.current_user['accountNo']})
+                data = res.json()
+                if res.status_code == 200:
+                    messagebox.showinfo("Success", data.get("message", "Card requested!"), parent=popup)
+                    popup.destroy()
+                else:
+                    messagebox.showerror("Error", data.get("message"), parent=popup)
+            except Exception as e:
+                messagebox.showerror("Error", str(e), parent=popup)
+
+        if status == 'NOT_REQUESTED':
+            ctk.CTkButton(popup, text="Request New Card", command=request_card, fg_color="#2563eb", hover_color="#1d4ed8", width=380, height=42, font=ctk.CTkFont(size=14, weight="bold")).pack(pady=15)
 
     def load_transfer_tab(self):
         self.clear_tab()
-        
-        container = ctk.CTkFrame(self.tab_content_frame, fg_color="transparent")
-        container.pack(fill="both", expand=True)
+        ctk.CTkLabel(self.tab_content_frame, text="Fund Transfer", font=ctk.CTkFont(size=20, weight="bold"), text_color="#ffffff").pack(anchor="w", pady=(0, 20))
 
-        left_frame = ctk.CTkFrame(container, fg_color="#0f172a", border_width=1, border_color="#1e293b", corner_radius=16)
-        left_frame.pack(side="left", fill="both", expand=True, padx=(0, 15))
+        form_card = ctk.CTkFrame(self.tab_content_frame, fg_color="#0f172a", border_width=1, border_color="#1e293b", corner_radius=16)
+        form_card.pack(fill="x", pady=5, ipady=20)
 
-        ctk.CTkLabel(left_frame, text="Send Money & Other Banks Transfer", font=ctk.CTkFont(size=18, weight="bold"), text_color="#ffffff").pack(anchor="w", padx=30, pady=(25, 20))
+        inner = ctk.CTkFrame(form_card, fg_color="transparent")
+        inner.pack(padx=30, pady=15, fill="x")
 
-        # Destination Bank Selection (15-20 banks list)
-        ctk.CTkLabel(left_frame, text="Select Bank", font=ctk.CTkFont(size=12, weight="bold"), text_color="#94a3b8").pack(anchor="w", padx=30, pady=2)
-        self.banks_list = [
-            "PayDesktop Bank", "OPay Digital Service", "Moniepoint MFB", "PalmPay", 
-            "Access Bank", "Zenith Bank", "Guaranty Trust Bank (GTB)", "First Bank of Nigeria", 
-            "United Bank for Africa (UBA)", "Ecobank Nigeria", "Fidelity Bank", "Stanbic IBTC Bank", 
-            "Sterling Bank", "Union Bank of Nigeria", "Unity Bank", "Wema Bank", 
-            "Keystone Bank", "Providus Bank", "Globus Bank", "FCMB"
-        ]
-        self.tr_bank = ctk.CTkComboBox(left_frame, values=self.banks_list, width=460, height=42, command=self.on_bank_select)
-        self.tr_bank.set("PayDesktop Bank")
-        self.tr_bank.pack(anchor="w", padx=30, pady=5)
+        ctk.CTkLabel(inner, text="Recipient Bank", font=ctk.CTkFont(size=12, weight="bold"), text_color="#94a3b8").pack(anchor="w", pady=(5, 2))
+        bank_menu = ctk.CTkComboBox(inner, values=["PayDesktop Bank", "OPay", "Kuda Bank", "Access Bank", "GTBank"], width=450, height=40)
+        bank_menu.pack(anchor="w", pady=4)
 
-        ctk.CTkLabel(left_frame, text="Recipient Account Number", font=ctk.CTkFont(size=12, weight="bold"), text_color="#94a3b8").pack(anchor="w", padx=30, pady=(10, 2))
-        self.tr_acc = ctk.CTkEntry(left_frame, placeholder_text="10-digit account no", width=460, height=42, fg_color="#020617")
-        self.tr_acc.pack(anchor="w", padx=30, pady=5)
-        self.tr_acc.bind("<KeyRelease>", self.verify_recipient)
+        ctk.CTkLabel(inner, text="Recipient Account Number", font=ctk.CTkFont(size=12, weight="bold"), text_color="#94a3b8").pack(anchor="w", pady=(10, 2))
+        acc_entry = ctk.CTkEntry(inner, placeholder_text="10-digit account number", width=450, height=40)
+        acc_entry.pack(anchor="w", pady=4)
 
-        # Verification frame with Name and Profile Picture together
-        ver_frame = ctk.CTkFrame(left_frame, fg_color="transparent")
-        ver_frame.pack(anchor="w", padx=30, pady=5)
+        ctk.CTkLabel(inner, text="Amount (₦)", font=ctk.CTkFont(size=12, weight="bold"), text_color="#94a3b8").pack(anchor="w", pady=(10, 2))
+        amt_entry = ctk.CTkEntry(inner, placeholder_text="5000", width=450, height=40)
+        amt_entry.pack(anchor="w", pady=4)
 
-        self.ver_pic_lbl = ctk.CTkLabel(ver_frame, text="", width=40, height=40, fg_color="#334155", corner_radius=20)
-        self.ver_pic_lbl.pack(side="left", padx=(0, 12))
+        ctk.CTkLabel(inner, text="Narration / Note (Optional)", font=ctk.CTkFont(size=12, weight="bold"), text_color="#94a3b8").pack(anchor="w", pady=(10, 2))
+        note_entry = ctk.CTkEntry(inner, placeholder_text="Dinner payment...", width=450, height=40)
+        note_entry.pack(anchor="w", pady=4)
 
-        self.tr_recipient_name = ctk.CTkLabel(ver_frame, text="", font=ctk.CTkFont(size=14, weight="bold"), text_color="#34d399")
-        self.tr_recipient_name.pack(side="left")
+        def execute_transfer():
+            bank = bank_menu.get()
+            acc = acc_entry.get().strip()
+            amt = amt_entry.get().strip()
+            note = note_entry.get().strip()
 
-        ctk.CTkLabel(left_frame, text="Amount (₦)", font=ctk.CTkFont(size=12, weight="bold"), text_color="#94a3b8").pack(anchor="w", padx=30, pady=(10, 2))
-        self.tr_amt = ctk.CTkEntry(left_frame, placeholder_text="0.00", width=460, height=42, fg_color="#020617")
-        self.tr_amt.pack(anchor="w", padx=30, pady=5)
+            if not acc or not amt:
+                return messagebox.showerror("Error", "Enter account number and amount.")
 
-        ctk.CTkLabel(left_frame, text="Transfer Note (Optional)", font=ctk.CTkFont(size=12, weight="bold"), text_color="#94a3b8").pack(anchor="w", padx=30, pady=(10, 2))
-        self.tr_note = ctk.CTkEntry(left_frame, placeholder_text="For payment / services", width=460, height=42, fg_color="#020617")
-        self.tr_note.pack(anchor="w", padx=30, pady=5)
+            dialog = PinDialog(self, title="Authorize Transfer")
+            if not dialog.pin: return
 
-        ctk.CTkButton(left_frame, text="Transfer Funds Now", command=self.prompt_transaction_pin, fg_color="#059669", hover_color="#047857", width=460, height=46, font=ctk.CTkFont(size=15, weight="bold")).pack(anchor="w", padx=30, pady=25)
-
-        right_frame = ctk.CTkFrame(container, fg_color="#0f172a", border_width=1, border_color="#1e293b", corner_radius=16, width=360)
-        right_frame.pack(side="right", fill="y", padx=(15, 0))
-        right_frame.pack_propagate(False)
-
-        ctk.CTkLabel(right_frame, text="Saved Beneficiaries", font=ctk.CTkFont(size=16, weight="bold"), text_color="#ffffff").pack(anchor="w", padx=25, pady=(25, 15))
-
-        self.beneficiaries_scroll = ctk.CTkScrollableFrame(right_frame, fg_color="transparent", height=400)
-        self.beneficiaries_scroll.pack(fill="both", expand=True, padx=12, pady=5)
-        self.load_beneficiaries()
-
-    def on_bank_select(self, choice):
-        self.verify_recipient()
-
-    def verify_recipient(self, event=None):
-        acc = self.tr_acc.get().strip()
-        bank = self.tr_bank.get()
-        if len(acc) == 10 and bank == "PayDesktop Bank":
             try:
-                res = requests.get(f"{API_URL}/user/verify/{acc}")
-                data = res.json()
-                if data.get("found"):
-                    name = data.get('fullName')
-                    self.tr_recipient_name.configure(text=f"Verified: {name}", text_color="#34d399")
-                    pic = data.get('profilePic', '')
-                    if pic:
-                        try:
-                            img_data = base64.b64decode(pic)
-                            img = Image.open(io.BytesIO(img_data)).resize((40, 40), Image.Resampling.LANCZOS)
-                            photo = ImageTk.PhotoImage(img)
-                            self.ver_pic_lbl.configure(image=photo, text="")
-                            self.ver_pic_lbl.image = photo
-                        except Exception:
-                            self.ver_pic_lbl.configure(text=name[0].upper(), image="")
-                    else:
-                        self.ver_pic_lbl.configure(text=name[0].upper(), font=ctk.CTkFont(size=14, weight="bold"), text_color="#ffffff", image="")
-                else:
-                    self.tr_recipient_name.configure(text="Account not found", text_color="#ef4444")
-                    self.ver_pic_lbl.configure(text="❌", image="")
-            except Exception:
-                self.tr_recipient_name.configure(text="")
-        elif len(acc) == 10:
-            self.tr_recipient_name.configure(text=f"External Bank ({bank})", text_color="#38bdf8")
-            self.ver_pic_lbl.configure(text="🏦", image="")
-        else:
-            self.tr_recipient_name.configure(text="")
-            self.ver_pic_lbl.configure(text="", image="")
-
-    def prompt_transaction_pin(self):
-        acc = self.tr_acc.get().strip()
-        amt = self.tr_amt.get().strip()
-        if not acc or not amt:
-            return messagebox.showerror("Error", "Please fill recipient account and amount.")
-
-        dialog = PinDialog(self, title="Authorize Transfer")
-        if not dialog.pin:
-            return
-        self.execute_transfer(dialog.pin)
-
-    def execute_transfer(self, pin):
-        acc = self.tr_acc.get().strip()
-        amt = self.tr_amt.get().strip()
-        note = self.tr_note.get().strip()
-        bank = self.tr_bank.get()
-
-        try:
-            res = requests.post(f"{API_URL}/user/transfer", json={
-                "senderPhone": self.current_user['phone'],
-                "recipientAccount": acc,
-                "recipientBank": bank,
-                "amount": float(amt),
-                "pin": pin,
-                "note": note
-            })
-            data = res.json()
-            if res.status_code == 200:
-                tx_id = data.get('tx_id', 'TXN' + str(int(requests.compat.time.time())))
-                msg = data.get('message', 'Transfer successful!')
-                
-                # Automatically save as beneficiary
-                recipient_name = self.tr_recipient_name.cget("text").replace("Verified: ", "")
-                requests.post(f"{API_URL}/user/beneficiaries", json={
-                    "phone": self.current_user['phone'],
-                    "name": recipient_name if recipient_name else f"Acc: {acc}",
-                    "accountNumber": acc,
-                    "bankName": bank
+                res = requests.post(f"{API_URL}/user/transfer", json={
+                    "senderPhone": self.current_user['phone'],
+                    "recipientBank": bank,
+                    "recipientAccountNo": acc,
+                    "amount": float(amt),
+                    "note": note,
+                    "pin": dialog.pin
                 })
-                self.load_beneficiaries()
+                data = res.json()
+                if res.status_code == 200:
+                    messagebox.showinfo("Success", data.get("message", "Transfer successful!"))
+                    self.current_user['balance'] = data.get("newBalance", self.current_user['balance'])
+                    acc_entry.delete(0, 'end')
+                    amt_entry.delete(0, 'end')
+                    note_entry.delete(0, 'end')
+                    self.load_overview_tab()
+                else:
+                    messagebox.showerror("Error", data.get("message", "Transfer failed."))
+            except Exception as e:
+                messagebox.showerror("Error", str(e))
 
-                # Receipt download prompt (Yes/No buttons)
-                if messagebox.askyesno("Download Receipt", f"{msg}\n\nDo you want to download the transaction receipt?"):
-                    self.save_receipt(tx_id, acc, bank, amt, note)
-
-                self.current_user['balance'] = data.get('newBalance', self.current_user['balance'])
-                self.load_overview_tab()
-            else:
-                messagebox.showerror("Error", data.get("message", "Transfer failed."))
-        except Exception as e:
-            messagebox.showerror("Error", str(e))
-
-    def save_receipt(self, tx_id, acc, bank, amt, note):
-        try:
-            file_path = filedialog.asksaveasfilename(defaultextension=".txt", filetypes=[("Text Files", "*.txt")], initialfile=f"Receipt_{tx_id}.txt")
-            if not file_path:
-                return
-            receipt_content = f"""========================================
-       PAYDESKTOP BANK - E-RECEIPT
-========================================
-Transaction ID : {tx_id}
-Sender Name    : {self.current_user['name']}
-Sender Account : {self.current_user['accountNo']}
-Recipient Acc  : {acc}
-Recipient Bank : {bank}
-Amount         : ₦{float(amt):,.2f}
-Note           : {note if note else 'N/A'}
-Date           : {requests.compat.datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-Status         : SUCCESSFUL
-========================================
-       Thank you for banking with us!
-========================================
-"""
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write(receipt_content)
-            messagebox.showinfo("Success", "Receipt downloaded successfully!")
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to save receipt: {e}")
-
-    def load_beneficiaries(self):
-        try:
-            res = requests.get(f"{API_URL}/user/beneficiaries/{self.current_user['phone']}")
-            list_b = res.json() if res.status_code == 200 else []
-            for w in self.beneficiaries_scroll.winfo_children(): w.destroy()
-            if not list_b:
-                ctk.CTkLabel(self.beneficiaries_scroll, text="No beneficiaries saved.", text_color="gray", font=ctk.CTkFont(size=13)).pack(pady=20)
-                return
-            for b in list_b:
-                b_card = ctk.CTkFrame(self.beneficiaries_scroll, fg_color="#1e293b", corner_radius=10)
-                b_card.pack(fill="x", pady=6, padx=5, ipady=8)
-                ctk.CTkLabel(b_card, text=b.get('name'), font=ctk.CTkFont(size=13, weight="bold"), text_color="#cbd5e1").pack(anchor="w", padx=12)
-                ctk.CTkLabel(b_card, text=f"{b.get('accountNumber')} ({b.get('bankName', 'PayDesktop Bank')})", font=ctk.CTkFont(size=12, family="Courier"), text_color="#38bdf8").pack(anchor="w", padx=12)
-        except Exception:
-            pass
+        ctk.CTkButton(inner, text="Send Money", command=execute_transfer, fg_color="#2563eb", hover_color="#1d4ed8", width=450, height=45, font=ctk.CTkFont(size=14, weight="bold")).pack(anchor="w", pady=(25, 5))
 
     def load_history_tab(self):
         self.clear_tab()
-        
-        top_bar = ctk.CTkFrame(self.tab_content_frame, fg_color="#0f172a", border_width=1, border_color="#1e293b", corner_radius=14, height=70)
-        top_bar.pack(fill="x", pady=10)
-        top_bar.pack_propagate(False)
-
-        ctk.CTkLabel(top_bar, text="Transaction History & Statements", font=ctk.CTkFont(size=18, weight="bold"), text_color="#ffffff").pack(side="left", padx=25)
-        ctk.CTkButton(top_bar, text="📄 Export Statement (TXT)", command=self.download_statement, fg_color="#2563eb", hover_color="#1d4ed8", width=200, height=40, font=ctk.CTkFont(size=13, weight="bold")).pack(side="right", padx=25)
-
-        self.history_scroll = ctk.CTkScrollableFrame(self.tab_content_frame, fg_color="#0f172a", border_width=1, border_color="#1e293b", corner_radius=14, height=500)
-        self.history_scroll.pack(fill="both", expand=True, pady=5)
+        ctk.CTkLabel(self.tab_content_frame, text="Transaction History", font=ctk.CTkFont(size=20, weight="bold"), text_color="#ffffff").pack(anchor="w", pady=(0, 20))
 
         try:
-            res = requests.get(f"{API_URL}/user/transactions/{self.current_user['phone']}")
+            res = requests.get(f"{API_URL}/user/transactions/{self.current_user['accountNo']}")
             txs = res.json() if res.status_code == 200 else []
-            self.cached_transactions = txs
             if not txs:
-                ctk.CTkLabel(self.history_scroll, text="No transactions found.", text_color="gray", font=ctk.CTkFont(size=15)).pack(pady=60)
+                ctk.CTkLabel(self.tab_content_frame, text="No transactions recorded yet.", text_color="gray", font=ctk.CTkFont(size=14)).pack(pady=40)
                 return
-            for tx in txs:
-                card = ctk.CTkFrame(self.history_scroll, fg_color="#1e293b", corner_radius=10)
-                card.pack(fill="x", pady=8, padx=12, ipady=10)
-                
-                txt = f"Date: {tx.get('date', '')[:10]} | TX ID: {tx.get('tx_id', 'N/A')} | Type: {tx.get('type')} | Bank: {tx.get('recipientBank', 'PayDesktop Bank')} | Amount: ₦{tx.get('amount', 0):,.2f} | Note: {tx.get('note', '')}"
-                ctk.CTkLabel(card, text=txt, font=ctk.CTkFont(size=13, weight="bold"), text_color="#cbd5e1").pack(anchor="w", padx=18)
-        except Exception as e:
-            ctk.CTkLabel(self.history_scroll, text=f"Error loading transactions: {e}", text_color="red").pack(pady=20)
 
-    def download_statement(self):
-        try:
-            file_path = filedialog.asksaveasfilename(defaultextension=".txt", filetypes=[("Text Files", "*.txt")], initialfile="Statement.txt")
-            if not file_path:
-                return
-            content = f"STATEMENT FOR {self.current_user['name']} (Account: {self.current_user['accountNo']})\n" + "="*60 + "\n\n"
-            for tx in getattr(self, 'cached_transactions', []):
-                content += f"Date: {tx.get('date', '')[:10]} | Type: {tx.get('type')} | Bank: {tx.get('recipientBank', 'PayDesktop Bank')} | Amount: ₦{tx.get('amount', 0):,.2f} | Note: {tx.get('note', '')}\n"
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write(content)
-            messagebox.showinfo("Success", "Statement exported successfully!")
+            for t in txs:
+                card = ctk.CTkFrame(self.tab_content_frame, fg_color="#0f172a", border_width=1, border_color="#1e293b", corner_radius=12, height=70)
+                card.pack(fill="x", pady=6, padx=2)
+                card.pack_propagate(False)
+
+                left = ctk.CTkFrame(card, fg_color="transparent")
+                left.pack(side="left", fill="y", padx=20, pady=12)
+                ctk.CTkLabel(left, text=t.get('type', 'TRANSFER').upper(), font=ctk.CTkFont(size=14, weight="bold"), text_color="#38bdf8").pack(anchor="w")
+                ctk.CTkLabel(left, text=t.get('note', 'No note provided'), font=ctk.CTkFont(size=11), text_color="#94a3b8").pack(anchor="w")
+
+                right = ctk.CTkFrame(card, fg_color="transparent")
+                right.pack(side="right", fill="y", padx=20, pady=12)
+                ctk.CTkLabel(right, text=f"₦{t.get('amount', 0):,.2f}", font=ctk.CTkFont(size=14, weight="bold"), text_color="#ffffff").pack(anchor="e")
+                ctk.CTkLabel(right, text=t.get('date', '')[:10], font=ctk.CTkFont(size=11), text_color="#64748b").pack(anchor="e")
+
         except Exception as e:
-            messagebox.showerror("Error", str(e))
+            ctk.CTkLabel(self.tab_content_frame, text=f"Error loading history: {e}", text_color="red").pack(pady=20)
 
     def load_settings_tab(self):
         self.clear_tab()
+        ctk.CTkLabel(self.tab_content_frame, text="Account Settings & KYC", font=ctk.CTkFont(size=20, weight="bold"), text_color="#ffffff").pack(anchor="w", pady=(0, 20))
+
+        card = ctk.CTkFrame(self.tab_content_frame, fg_color="#0f172a", border_width=1, border_color="#1e293b", corner_radius=16)
+        card.pack(fill="x", pady=5, ipady=20)
+
+        inner = ctk.CTkFrame(card, fg_color="transparent")
+        inner.pack(padx=30, pady=15, fill="x")
+
+        ctk.CTkLabel(inner, text="Profile Picture", font=ctk.CTkFont(size=12, weight="bold"), text_color="#94a3b8").pack(anchor="w", pady=(5, 2))
         
-        settings_card = ctk.CTkFrame(self.tab_content_frame, fg_color="#0f172a", border_width=1, border_color="#1e293b", corner_radius=18, width=650)
-        settings_card.pack(anchor="w", pady=10, fill="x", padx=10, ipady=25)
+        def upload_pic():
+            file_path = filedialog.askopenfilename(title="Select Profile Picture", filetypes=[("Image Files", "*.png;*.jpg;*.jpeg")])
+            if file_path:
+                try:
+                    with open(file_path, "rb") as f:
+                        encoded = base64.b64encode(f.read()).decode('utf-8')
+                    res = requests.put(f"{API_URL}/user/profile-pic", json={"phone": self.current_user['phone'], "profilePic": encoded})
+                    if res.status_code == 200:
+                        self.current_user['profilePic'] = encoded
+                        self.load_header_profile_pic()
+                        messagebox.showinfo("Success", "Profile picture updated successfully!")
+                    else:
+                        messagebox.showerror("Error", "Failed to upload picture.")
+                except Exception as e:
+                    messagebox.showerror("Error", str(e))
 
-        ctk.CTkLabel(settings_card, text="Account Settings & Profile Picture", font=ctk.CTkFont(size=20, weight="bold"), text_color="#ffffff").pack(anchor="w", padx=30, pady=(25, 20))
+        ctk.CTkButton(inner, text="Upload New Picture", command=upload_pic, fg_color="#334155", hover_color="#475569", width=250, height=38).pack(anchor="w", pady=5)
 
-        pic_frame = ctk.CTkFrame(settings_card, fg_color="transparent")
-        pic_frame.pack(anchor="w", padx=30, pady=10)
+        ctk.CTkLabel(inner, text="KYC Verification Tier", font=ctk.CTkFont(size=12, weight="bold"), text_color="#94a3b8").pack(anchor="w", pady=(15, 2))
+        ctk.CTkLabel(inner, text=f"Current Status: {self.current_user.get('kycTier', 'Tier 1')}", font=ctk.CTkFont(size=14, weight="bold"), text_color="#fbbf24").pack(anchor="w", pady=2)
 
-        self.pic_label = ctk.CTkLabel(pic_frame, text="📷 No Picture", font=ctk.CTkFont(size=12), width=110, height=110, fg_color="#334155", corner_radius=55)
-        self.pic_label.pack(side="left", padx=(0, 25))
-        self.load_current_profile_pic_preview()
+        def request_tier3_upgrade():
+            if messagebox.askyesno("Confirm", "Request upgrade to Tier 3 from Admin?"):
+                try:
+                    res = requests.post(f"{API_URL}/admin/request-action", json={
+                        "adminPhone": "Customer",
+                        "adminName": self.current_user['name'],
+                        "actionType": "TIER3_UPGRADE",
+                        "targetAccountNo": self.current_user['accountNo'],
+                        "targetName": self.current_user['name']
+                    })
+                    if res.status_code == 200:
+                        messagebox.showinfo("Success", "Tier 3 upgrade request submitted to admin.")
+                    else:
+                        messagebox.showerror("Error", "Failed to submit request.")
+                except Exception as e:
+                    messagebox.showerror("Error", str(e))
 
-        btn_pic_frame = ctk.CTkFrame(pic_frame, fg_color="transparent")
-        btn_pic_frame.pack(side="left")
-
-        ctk.CTkButton(btn_pic_frame, text="Upload Profile Picture", command=self.upload_profile_picture, width=200, height=40, font=ctk.CTkFont(size=13, weight="bold")).pack(pady=5)
-        ctk.CTkLabel(btn_pic_frame, text="Supports JPG, PNG formats. Persists across logins.", font=ctk.CTkFont(size=12), text_color="gray").pack(anchor="w")
-
-        tier = self.current_user.get('kycTier', 'Tier 1')
-        ctk.CTkLabel(settings_card, text=f"KYC Tier Status: {tier}", font=ctk.CTkFont(size=14, weight="bold"), text_color="#fbbf24").pack(anchor="w", padx=30, pady=10)
-
-        ctk.CTkLabel(settings_card, text="Phone Number", font=ctk.CTkFont(size=12, weight="bold"), text_color="#94a3b8").pack(anchor="w", padx=30, pady=(10, 2))
-        self.set_phone = ctk.CTkEntry(settings_card, width=460, height=42, fg_color="#020617")
-        self.set_phone.insert(0, self.current_user['phone'])
-        self.set_phone.pack(anchor="w", padx=30, pady=5)
-
-        ctk.CTkLabel(settings_card, text="Email Address", font=ctk.CTkFont(size=12, weight="bold"), text_color="#94a3b8").pack(anchor="w", padx=30, pady=(10, 2))
-        self.set_email = ctk.CTkEntry(settings_card, width=460, height=42, fg_color="#020617")
-        self.set_email.insert(0, self.current_user.get('email', ''))
-        self.set_email.pack(anchor="w", padx=30, pady=5)
-
-        ctk.CTkLabel(settings_card, text="New Security PIN (Optional)", font=ctk.CTkFont(size=12, weight="bold"), text_color="#94a3b8").pack(anchor="w", padx=30, pady=(10, 2))
-        self.set_pin = ctk.CTkEntry(settings_card, placeholder_text="••••", show="*", width=460, height=42, fg_color="#020617")
-        self.set_pin.pack(anchor="w", padx=30, pady=5)
-
-        ctk.CTkButton(settings_card, text="Save Changes", command=self.update_profile, fg_color="#2563eb", hover_color="#1d4ed8", width=460, height=46, font=ctk.CTkFont(size=15, weight="bold")).pack(anchor="w", padx=30, pady=25)
-
-    def load_current_profile_pic_preview(self):
-        pic_data = self.current_user.get('profilePic', '')
-        if pic_data:
-            try:
-                img_data = base64.b64decode(pic_data)
-                img = Image.open(io.BytesIO(img_data)).resize((110, 110), Image.Resampling.LANCZOS)
-                photo = ImageTk.PhotoImage(img)
-                self.pic_label.configure(image=photo, text="")
-                self.pic_label.image = photo
-            except Exception:
-                pass
-
-    def upload_profile_picture(self):
-        file_path = filedialog.askopenfilename(title="Select Profile Picture", filetypes=[("Image Files", "*.jpg *.png *.jpeg")])
-        if file_path:
-            self.profile_pic_path = file_path
-            try:
-                with open(file_path, "rb") as image_file:
-                    encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
-                self.profile_pic_base64 = encoded_string
-
-                img = Image.open(file_path).resize((110, 110), Image.Resampling.LANCZOS)
-                photo = ImageTk.PhotoImage(img)
-                self.pic_label.configure(image=photo, text="")
-                self.pic_label.image = photo
-                messagebox.showinfo("Success", "Profile picture loaded! Click 'Save Changes' to update profile.")
-            except Exception as e:
-                messagebox.showerror("Error", f"Failed to load image: {e}")
-
-    def update_profile(self):
-        new_phone = self.set_phone.get().strip()
-        new_email = self.set_email.get().strip()
-        new_pin = self.set_pin.get().strip()
-        pic_to_send = getattr(self, 'profile_pic_base64', self.current_user.get('profilePic', ''))
-
-        try:
-            res = requests.post(f"{API_URL}/user/profile/update", json={
-                "currentPhone": self.current_user['phone'],
-                "newPhone": new_phone,
-                "newEmail": new_email,
-                "newPin": new_pin if new_pin else None,
-                "profilePic": pic_to_send
-            })
-            data = res.json()
-            if res.status_code == 200:
-                messagebox.showinfo("Success", "Profile updated successfully!")
-                self.current_user = data.get('user', self.current_user)
-                self.load_header_profile_pic()
-            else:
-                messagebox.showerror("Error", data.get("message", "Failed to update profile."))
-        except Exception as e:
-            messagebox.showerror("Error", str(e))
+        ctk.CTkButton(inner, text="Request Tier 3 Upgrade", command=request_tier3_upgrade, fg_color="#7c3aed", hover_color="#6d28d9", width=250, height=38).pack(anchor="w", pady=10)
 
     def load_chat_tab(self):
         self.clear_tab()
-        
-        chat_card = ctk.CTkFrame(self.tab_content_frame, fg_color="#0f172a", border_width=1, border_color="#1e293b", corner_radius=18)
-        chat_card.pack(fill="both", expand=True, padx=10, pady=10)
+        ctk.CTkLabel(self.tab_content_frame, text="Live Support Chat", font=ctk.CTkFont(size=20, weight="bold"), text_color="#ffffff").pack(anchor="w", pady=(0, 20))
 
-        ctk.CTkLabel(chat_card, text="Live Support Chat", font=ctk.CTkFont(size=18, weight="bold"), text_color="#ffffff").pack(anchor="w", padx=25, pady=(20, 15))
+        chat_card = ctk.CTkFrame(self.tab_content_frame, fg_color="#0f172a", border_width=1, border_color="#1e293b", corner_radius=16, height=450)
+        chat_card.pack(fill="x", pady=5)
+        chat_card.pack_propagate(False)
 
-        self.chat_box = ctk.CTkScrollableFrame(chat_card, fg_color="#020617", height=450, corner_radius=12)
-        self.chat_box.pack(fill="both", expand=True, padx=25, pady=5)
+        msgs_frame = ctk.CTkScrollableFrame(chat_card, fg_color="#020617", height=340)
+        msgs_frame.pack(fill="x", padx=20, pady=15)
 
-        self.refresh_chat_messages()
+        def refresh_chat():
+            for w in msgs_frame.winfo_children(): w.destroy()
+            try:
+                res = requests.get(f"{API_URL}/chat/{self.current_user['phone']}")
+                msgs = res.json() if res.status_code == 200 else []
+                for m in msgs:
+                    role = m.get('senderRole', 'user').upper()
+                    text = m.get('message', '')
+                    ctk.CTkLabel(msgs_frame, text=f"[{role}]: {text}", font=ctk.CTkFont(size=13), text_color="#38bdf8" if role != 'USER' else "#cbd5e1").pack(anchor="w", pady=4, padx=5)
+            except Exception:
+                pass
 
-        input_frame = ctk.CTkFrame(chat_card, fg_color="transparent")
-        input_frame.pack(fill="x", padx=25, pady=20)
+        refresh_chat()
 
-        self.chat_inp = ctk.CTkEntry(input_frame, placeholder_text="Type your message to support...", height=46, fg_color="#020617", font=ctk.CTkFont(size=13))
-        self.chat_inp.pack(side="left", fill="x", expand=True, padx=(0, 15))
-        self.chat_inp.bind("<Return>", lambda e: self.send_chat_msg())
+        input_row = ctk.CTkFrame(chat_card, fg_color="transparent")
+        input_row.pack(fill="x", padx=20, pady=5)
 
-        ctk.CTkButton(input_frame, text="Send", command=self.send_chat_msg, fg_color="#2563eb", hover_color="#1d4ed8", width=120, height=46, font=ctk.CTkFont(size=14, weight="bold")).pack(side="right")
+        msg_entry = ctk.CTkEntry(input_row, placeholder_text="Type message to support...", width=650, height=40)
+        msg_entry.pack(side="left", padx=(0, 10))
 
-    def refresh_chat_messages(self):
-        for w in self.chat_box.winfo_children(): w.destroy()
-        try:
-            res = requests.get(f"{API_URL}/chat/{self.current_user['phone']}")
-            msgs = res.json() if res.status_code == 200 else []
-            if not msgs:
-                ctk.CTkLabel(self.chat_box, text="No messages yet. Start a conversation with support!", text_color="gray", font=ctk.CTkFont(size=13)).pack(pady=40)
-                return
-            for m in msgs:
-                role = m.get('senderRole', 'user')
-                msg_text = f"{role.upper()}: {m.get('message')}"
-                align_anchor = "e" if role == 'user' else "w"
-                color = "#2563eb" if role == 'user' else "#334155"
-                
-                msg_lbl = ctk.CTkLabel(self.chat_box, text=msg_text, font=ctk.CTkFont(size=13), fg_color=color, corner_radius=10, padx=15, pady=10, text_color="#ffffff")
-                msg_lbl.pack(anchor=align_anchor, pady=6, padx=12)
-        except Exception as e:
-            ctk.CTkLabel(self.chat_box, text=f"Error loading chat: {e}", text_color="red").pack(pady=20)
+        def send_msg():
+            txt = msg_entry.get().strip()
+            if not txt: return
+            try:
+                res = requests.post(f"{API_URL}/chat/send", json={
+                    "userPhone": self.current_user['phone'],
+                    "senderRole": "user",
+                    "message": txt
+                })
+                if res.status_code == 200:
+                    msg_entry.delete(0, 'end')
+                    refresh_chat()
+                else:
+                    messagebox.showerror("Error", "Failed to send message.")
+            except Exception as e:
+                messagebox.showerror("Error", str(e))
 
-    def send_chat_msg(self):
-        msg = self.chat_inp.get().strip()
-        if not msg: return
-        try:
-            res = requests.post(f"{API_URL}/chat/send", json={
-                "userPhone": self.current_user['phone'],
-                "senderRole": "user",
-                "message": msg
-            })
-            if res.status_code == 200:
-                self.chat_inp.delete(0, "end")
-                self.refresh_chat_messages()
-            else:
-                messagebox.showerror("Error", "Failed to send message.")
-        except Exception as e:
-            messagebox.showerror("Error", str(e))
+        ctk.CTkButton(input_row, text="Send", command=send_msg, fg_color="#2563eb", hover_color="#1d4ed8", width=100, height=40, font=ctk.CTkFont(size=13, weight="bold")).pack(side="right")
 
 if __name__ == "__main__":
     app = CustomerApp()

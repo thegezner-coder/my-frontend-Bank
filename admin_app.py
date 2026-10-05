@@ -6,7 +6,8 @@ import os
 ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("blue")
 
-API_URL = "http://localhost:5000/api"
+# Environment-aware API URL for container/Railway deployment
+API_URL = os.getenv("API_URL", "http://localhost:5000/api")
 
 class PayDesktopAdminApp(ctk.CTk):
     def __init__(self):

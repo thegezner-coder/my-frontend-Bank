@@ -8,6 +8,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- html2canvas for Receipt Image Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         /* Smooth Scrolling Marquee Banner */
         .marquee-container {
@@ -300,6 +302,44 @@
         </div>
     </div>
 
+    <!-- Receipt Modal -->
+    <div id="receipt-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+        <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl w-full max-w-md shadow-2xl space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="text-base font-bold text-white"><i class="fa-solid fa-receipt mr-2 text-emerald-400"></i>Transaction Receipt</h3>
+                <button onclick="closeModal('receipt-modal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <!-- Printable/Downloadable Receipt Card -->
+            <div id="receipt-card" class="bg-slate-950 border border-slate-800 p-5 rounded-xl space-y-4 text-xs text-slate-300">
+                <div class="text-center pb-3 border-b border-slate-800">
+                    <h4 class="text-sm font-bold text-blue-400">PayDesktop Bank</h4>
+                    <p class="text-[10px] text-slate-500">Official Electronic Transfer Receipt</p>
+                </div>
+                <div class="space-y-2">
+                    <div class="flex justify-between"><span class="text-slate-500">Status:</span> <span class="text-emerald-400 font-bold">SUCCESSFUL</span></div>
+                    <div class="flex justify-between"><span class="text-slate-500">Date/Time:</span> <span id="rec-date" class="font-mono text-slate-200">---</span></div>
+                    <div class="flex justify-between"><span class="text-slate-500">Transaction ID:</span> <span id="rec-txid" class="font-mono text-sky-400">---</span></div>
+                    <div class="flex justify-between"><span class="text-slate-500">Sender:</span> <span id="rec-sender" class="font-semibold text-slate-200">---</span></div>
+                    <div class="flex justify-between"><span class="text-slate-500">Recipient Bank:</span> <span id="rec-bank" class="font-semibold text-slate-200">---</span></div>
+                    <div class="flex justify-between"><span class="text-slate-500">Recipient Account:</span> <span id="rec-acc" class="font-mono text-slate-200">---</span></div>
+                    <div class="flex justify-between"><span class="text-slate-500">Amount:</span> <span id="rec-amt" class="font-bold text-emerald-400 text-sm">---</span></div>
+                    <div class="flex justify-between"><span class="text-slate-500">Note:</span> <span id="rec-note" class="text-slate-400">---</span></div>
+                </div>
+            </div>
+
+            <!-- Download Action Buttons -->
+            <div class="flex flex-col gap-2 pt-2">
+                <button onclick="downloadReceiptImage()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg text-xs font-semibold transition flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-image"></i><span>Download Receipt as Image (JPG)</span>
+                </button>
+                <button onclick="downloadReceiptPDF()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 py-2.5 rounded-lg text-xs font-semibold transition flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-file-pdf"></i><span>Save / Print PDF Receipt</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Airtime Modal -->
     <div id="airtime-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 hidden">
         <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl space-y-4">
@@ -370,10 +410,11 @@
 
     <!-- JavaScript Application Logic -->
     <script>
-        const API_URL = 'http://localhost:5000/api';
+        const API_URL = '/api';
         let currentUser = null;
         let pendingActionCallback = null;
         let cachedTransactions = [];
+        let lastReceiptData = null;
 
         function switchAuthTab(tab) {
             if (tab === 'login') {
@@ -563,17 +604,58 @@
                 });
                 const data = await res.json();
                 if(res.ok) {
-                    alert(data.message || 'Transfer successful!');
                     currentUser.balance = data.newBalance !== undefined ? data.newBalance : currentUser.balance - parseFloat(amt);
+                    
+                    // Prepare Receipt Data
+                    lastReceiptData = {
+                        bank,
+                        account: acc,
+                        amount: parseFloat(amt),
+                        note,
+                        date: new Date().toLocaleString(),
+                        txId: data.txId || 'TXN-' + Math.floor(Math.random() * 1000000000),
+                        senderName: currentUser.name,
+                        senderAcc: currentUser.accountNo
+                    };
+
                     document.getElementById('transfer-acc').value = '';
                     document.getElementById('transfer-amt').value = '';
                     document.getElementById('transfer-note').value = '';
                     document.getElementById('transfer-recipient-name').innerText = '';
-                    switchTab('overview', document.querySelectorAll('.nav-btn')[0]);
+                    
+                    openModal('receipt-modal');
+                    loadOverview();
                 } else {
                     alert(data.message || 'Transfer failed.');
                 }
             } catch(e) { alert('Error: ' + e.message); }
+        }
+
+        function populateReceiptModal() {
+            if(!lastReceiptData) return;
+            document.getElementById('rec-date').innerText = lastReceiptData.date;
+            document.getElementById('rec-txid').innerText = lastReceiptData.txId;
+            document.getElementById('rec-sender').innerText = `${lastReceiptData.senderName} (${lastReceiptData.senderAcc})`;
+            document.getElementById('rec-bank').innerText = lastReceiptData.bank;
+            document.getElementById('rec-acc').innerText = lastReceiptData.account;
+            document.getElementById('rec-amt').innerText = `₦${lastReceiptData.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            document.getElementById('rec-note').innerText = lastReceiptData.note || 'N/A';
+        }
+
+        function downloadReceiptImage() {
+            const receiptElement = document.getElementById('receipt-card');
+            html2canvas(receiptElement, { backgroundColor: '#020617', scale: 2 }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `PayDesktop_Receipt_${lastReceiptData ? lastReceiptData.txId : 'transfer'}.jpg`;
+                link.href = canvas.toDataURL('image/jpeg', 0.9);
+                link.click();
+            }).catch(err => {
+                alert('Failed to generate image receipt: ' + err.message);
+            });
+        }
+
+        function downloadReceiptPDF() {
+            window.print();
         }
 
         async function loadBeneficiaries() {
@@ -610,7 +692,7 @@
                     <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center justify-between text-xs shadow-md">
                         <div>
                             <span class="font-bold text-blue-400">${t.type}</span> - ₦${t.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}
-                            <p class="text-[11px] text-slate-400 mt-0.5">${t.note || 'No note'} | ID: ${t.tx_id || 'N/A'}</p>
+                            <p class="text-[11px] text-slate-400 mt-0.5">${t.note \vert{}\vert{} 'No note'} \vert{} ID:${t.tx_id || 'N/A'}</p>
                         </div>
                         <span class="text-[11px] text-slate-500">${t.date ? t.date.slice(0, 10) : ''}</span>
                     </div>
@@ -620,9 +702,9 @@
 
         function downloadStatement() {
             if(!cachedTransactions || cachedTransactions.length === 0) return alert('No transactions to export.');
-            let content = `=== PAYDESKTOP BANK STATEMENT ===\nCustomer: ${currentUser.name}\nAccount: ${currentUser.accountNo}\nDate: ${new Date().toISOString().slice(0,10)}\n\n`;
+            let content = `=== PAYDESKTOP BANK STATEMENT ===\nCustomer: ${currentUser.name}\nAccount: ${currentUser.accountNo}\nDate:${new Date().toISOString().slice(0,10)}\n\n`;
             cachedTransactions.forEach(t => {
-                content += `[${t.date ? t.date.slice(0,10) : ''}] ${t.type} - ₦${t.amount} | Note: ${t.note || ''}\n`;
+                content += `[${t.date ? t.date.slice(0,10) : ''}] ${t.type} - ₦${t.amount} \vert{} Note:${t.note || ''}\n`;
             });
             const blob = new Blob([content], {type: 'text/plain'});
             const url = URL.createObjectURL(blob);
@@ -716,8 +798,7 @@
                     return `
                         <div class="flex flex-col ${isUser ? 'items-end' : 'items-start'}">
                             <div class="max-w-[80%] rounded-xl px-4 py-2.5 text-xs ${isUser ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-200 border border-slate-700'}">
-                                <span class="font-bold text-[10px] block opacity-75 uppercase mb-0.5">${m.senderRole}</span>
-                                ${m.message}
+                                <span class="font-bold text-[10px] block opacity-75 uppercase mb-0.5">${m.senderRole}</span>${m.message}
                             </div>
                         </div>
                     `;
@@ -751,6 +832,7 @@
         function openModal(id) {
             document.getElementById(id).classList.remove('hidden');
             if(id === 'card-modal') loadCardModalContent();
+            if(id === 'receipt-modal') populateReceiptModal();
         }
 
         function closeModal(id) {
@@ -830,37 +912,4 @@
             if(status === 'ASSIGNED' && currentUser.cardDetails) {
                 container.innerHTML = `
                     <div class="bg-gradient-to-r from-blue-900 to-indigo-900 p-4 rounded-xl border border-blue-500/30 text-left text-white space-y-2 mb-4 shadow-lg">
-                        <div class="flex justify-between items-center"><span class="text-[10px] uppercase font-bold text-blue-300">PayDesktop Card</span><i class="fa-solid fa-wifi text-xs"></i></div>
-                        <p class="font-mono text-sm tracking-widest">${currentUser.cardDetails.cardNumber}</p>
-                        <div class="flex justify-between text-[11px] text-slate-300"><span>Exp: ${currentUser.cardDetails.expiry}</span><span>CVV: ${currentUser.cardDetails.cvv}</span></div>
-                    </div>
-                    <p class="text-xs text-emerald-400 font-semibold">Active ATM Card Assigned</p>
-                `;
-            } else if(status === 'PENDING') {
-                container.innerHTML = `<p class="text-xs text-amber-400 font-semibold mb-3">Card Request Pending Admin Approval.</p>`;
-            } else {
-                container.innerHTML = `
-                    <p class="text-xs text-slate-400 mb-4">You do not have an active ATM card.</p>
-                    <button onclick="requestCard()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-semibold transition">Request Physical / Virtual Card</button>
-                `;
-            }
-        }
-
-        async function requestCard() {
-            try {
-                const res = await fetch(`${API_URL}/user/request-card`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({phone: currentUser.phone})
-                });
-                const data = await res.json();
-                if(res.ok) {
-                    alert('Card request submitted successfully!');
-                    currentUser.cardStatus = 'PENDING';
-                    closeModal('card-modal');
-                } else { alert(data.message || 'Failed.'); }
-            } catch(e) { alert('Error: ' + e.message); }
-        }
-    </script>
-</body>
-</html>
+                        <div class="flex justify-between items-center

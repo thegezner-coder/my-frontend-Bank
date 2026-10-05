@@ -145,7 +145,11 @@
 
     <!-- JavaScript Application Logic -->
     <script>
-        const API_URL = 'http://localhost:5000/api';
+        // Automatic API URL detection for local development vs Railway/Cloud container deployment
+        const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+            ? 'http://localhost:5000/api' 
+            : `${window.location.origin}/api`;
+            
         let currentAdmin = null;
 
         function renderCustomerAvatar(profilePic, name, size = 'h-12 w-12') {
@@ -187,7 +191,7 @@
                     document.getElementById('authScreen').classList.add('hidden');
                     document.getElementById('mainDashboard').classList.remove('hidden');
                     document.getElementById('currentAdminName').innerText = currentAdmin.name;
-                    document.getElementById('adminRoleBadge').innerText = currentAdmin.role === 'super_admin' ? '⭐ Super Admin' : '🛡️️ Branch Admin';
+                    document.getElementById('adminRoleBadge').innerText = currentAdmin.role === 'super_admin' ? '⭐ Super Admin' : '🛡 Branch Admin';
                     
                     if(currentAdmin.role === 'super_admin') {
                         document.getElementById('superAdminNav').classList.remove('hidden');

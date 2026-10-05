@@ -2,9 +2,9 @@
     "name": "paydesktop-backend",
     "version": "1.0.0",
     "description": "PayDesktop Banking Backend Server",
-    "main": "server_4.js",
+    "main": "server.js",
     "scripts": {
-        "start": "node server_4.js"
+        "start": "node server.js"
     },
     "dependencies": {
         "cors": "^2.8.6",

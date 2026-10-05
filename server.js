@@ -9,8 +9,9 @@ app.use(express.urlencoded({ extended: true }));
 app.set('view engine', 'ejs');
 app.use(cors());
 
-// MongoDB Connection
-mongoose.connect('mongodb://localhost:27017/paydesktop_bank')
+// MongoDB Connection (Fixed for Railway & Local)
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/paydesktop_bank';
+mongoose.connect(MONGO_URI)
 .then(async () => {
     console.log('Connected to MongoDB successfully');
     await seedAdmins();
@@ -102,7 +103,7 @@ const adminRequestSchema = new mongoose.Schema({
 });
 const AdminRequest = mongoose.model('AdminRequest', adminRequestSchema);
 
-// NEW SCHEMA: Shareable Transfer Links
+// SHAREABLE TRANSFER LINKS SCHEMA
 const transferLinkSchema = new mongoose.Schema({
     token: { type: String, required: true, unique: true },
     recipientName: { type: String, required: true },
@@ -216,7 +217,6 @@ app.put('/api/admin/users/:accountNo/status', async (req, res) => {
     } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// NEW ADMIN ROUTE: Edit customer profile details
 app.put('/api/admin/users/:accountNo/edit', async (req, res) => {
     try {
         const { name, email, phone } = req.body;
@@ -498,7 +498,7 @@ app.post('/api/user/profile/update', async (req, res) => {
 });
 
 // ==========================================
-// NEW FEATURE: SHAREABLE WEB TRANSFER LINK
+// SHAREABLE WEB TRANSFER LINK ROUTES
 // ==========================================
 app.post('/api/create-transfer-link', async (req, res) => {
     try {
@@ -553,6 +553,6 @@ app.post('/api/chat/send', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`PayDesktop Bank server running on port ${PORT}`);
 });

@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PayDesktop Bank - Admin Portal</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js for Live Charting -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased h-screen overflow-hidden">
+
+    <!-- ================= AUTHENTICATION SCREEN ================= -->
+    <div id="authScreen" class="flex items-center justify-center h-full w-full bg-slate-950 absolute inset-0 z-50">
+        <div class="bg-slate-900 border border-slate-800 p-8 rounded-2xl shadow-2xl w-full max-w-md">
+            <div class="text-center mb-6">
+                <h1 class="text-2xl font-bold text-blue-400">PayDesktop Bank</h1>
+                <p class="text-sm text-slate-400 mt-1">Admin & Super Admin Portal</p>
+            </div>
+
+            <!-- Auth Tabs -->
+            <div class="flex border-b border-slate-800 mb-6">
+                <button onclick="switchAuthTab('login')" id="tabLoginBtn" class="flex-1 pb-3 text-sm font-semibold text-blue-400 border-b-2 border-blue-500 transition-colors">Admin Login</button>
+                <button onclick="switchAuthTab('register')" id="tabRegBtn" class="flex-1 pb-3 text-sm font-semibold text-slate-400 hover:text-slate-200 transition-colors">Create Admin Account</button>
+            </div>
+
+            <!-- Login Form -->
+            <div id="loginFormContainer" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Admin Phone Number</label>
+                    <input type="text" id="loginPhone" placeholder="e.g. 08000000000" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">PIN / Password</label>
+                    <input type="password" id="loginPin" placeholder="••••" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-blue-500">
+                </div>
+                <button onclick="handleLogin()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition-colors shadow-lg shadow-blue-600/30">Login to Portal</button>
+            </div>
+
+            <!-- Register Admin Form -->
+            <div id="regFormContainer" class="space-y-4 hidden">
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Full Name</label>
+                    <input type="text" id="regName" placeholder="Admin Name" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Phone Number</label>
+                    <input type="text" id="regPhone" placeholder="Phone Number" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">PIN</label>
+                    <input type="password" id="regPin" placeholder="••••" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Admin Role</label>
+                    <select id="regRole" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-blue-500">
+                        <option value="admin">Branch Admin</option>
+                        <option value="super_admin">Super Admin</option>
+                    </select>
+                </div>
+                <button onclick="handleRegister()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-3 rounded-lg transition-colors shadow-lg shadow-emerald-600/30">Register Admin Account</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MAIN DASHBOARD APP ================= -->
+    <div id="mainDashboard" class="flex h-screen overflow-hidden hidden">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="w-72 bg-slate-900 border-r border-slate-800 flex flex-col justify-between">
+            <div>
+                <div class="h-20 flex items-center px-6 border-b border-slate-800 bg-slate-950">
+                    <span class="text-xl font-bold text-blue-400 tracking-wide">PayDesktop Admin</span>
+                </div>
+                <div id="adminRoleBadge" class="px-6 py-3 text-xs font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 border-y border-amber-500/20"></div>
+                
+                <nav class="p-4 space-y-3 overflow-y-auto">
+                    <button onclick="switchTab('analytics')" class="nav-btn w-full flex items-center px-5 py-3.5 text-base font-semibold rounded-xl bg-blue-600 text-white transition-all shadow-lg shadow-blue-600/25"><i class="fas fa-chart-pie w-6 mr-3 text-lg"></i> Live Analytics</button>
+                    <button onclick="switchTab('pending')" class="nav-btn w-full flex items-center px-5 py-3.5 text-base font-semibold rounded-xl text-slate-300 hover:bg-slate-800 hover:text-white transition-all"><i class="fas fa-user-clock w-6 mr-3 text-lg"></i> Pending Approvals</button>
+                    <button onclick="switchTab('customers')" class="nav-btn w-full flex items-center px-5 py-3.5 text-base font-semibold rounded-xl text-slate-300 hover:bg-slate-800 hover:text-white transition-all"><i class="fas fa-users w-6 mr-3 text-lg"></i> Manage Customers</button>
+                    <button onclick="switchTab('transactions')" class="nav-btn w-full flex items-center px-5 py-3.5 text-base font-semibold rounded-xl text-slate-300 hover:bg-slate-800 hover:text-white transition-all"><i class="fas fa-receipt w-6 mr-3 text-lg"></i> Transactions & Statements</button>
+                    <button onclick="switchTab('broadcast')" class="nav-btn w-full flex items-center px-5 py-3.5 text-base font-semibold rounded-xl text-slate-300 hover:bg-slate-800 hover:text-white transition-all"><i class="fas fa-bullhorn w-6 mr-3 text-lg"></i> Dynamic Broadcasts</button>
+                    <button onclick="switchTab('chats')" class="nav-btn w-full flex items-center px-5 py-3.5 text-base font-semibold rounded-xl text-slate-300 hover:bg-slate-800 hover:text-white transition-all"><i class="fas fa-comments w-6 mr-3 text-lg"></i> Live Support Chat</button>
+                    <div id="superAdminNav" class="hidden pt-3 border-t border-slate-800 mt-3">
+                        <button onclick="switchTab('requests')" class="nav-btn w-full flex items-center px-5 py-3.5 text-base font-semibold rounded-xl text-amber-300 bg-amber-950/30 hover:bg-amber-950/50 transition-all border border-amber-500/40 shadow-md"><i class="fas fa-shield-alt w-6 mr-3 text-lg"></i> Admin Requests</button>
+                    </div>
+                </nav>
+            </div>
+            
+            <div class="p-4 border-t border-slate-800 bg-slate-950">
+                <button onclick="handleLogout()" class="w-full flex items-center px-5 py-3 text-sm font-bold text-red-400 hover:bg-red-500/10 rounded-xl transition-colors"><i class="fas fa-sign-out-alt w-6 mr-3 text-base"></i> Logout</button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 flex flex-col h-full overflow-hidden bg-slate-950">
+            <header class="h-20 border-b border-slate-800 bg-slate-900/50 flex items-center justify-between px-8">
+                <h2 id="pageTitle" class="text-2xl font-bold text-slate-100">Live Analytics & Overview</h2>
+                <div class="flex items-center space-x-3">
+                    <span id="currentAdminName" class="text-sm font-semibold text-slate-300">Admin</span>
+                    <div class="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center font-bold text-white text-base shadow-md">A</div>
+                </div>
+            </header>
+
+            <div class="flex-1 overflow-y-auto p-8" id="contentArea"></div>
+        </main>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div id="editModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+        <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl w-full max-w-md shadow-2xl">
+            <h3 class="text-lg font-bold mb-4 text-white">Edit Customer Credentials & KYC Tier</h3>
+            <input type="hidden" id="editAccountNo">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">Phone Number</label>
+                    <input type="text" id="editPhone" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3.5 py-2.5 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">Email Address</label>
+                    <input type="email" id="editEmail" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3.5 py-2.5 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">KYC Tier Level</label>
+                    <select id="editKycTier" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3.5 py-2.5 text-sm">
+                        <option value="Tier 1">Tier 1 (Max Bal: ₦300k | Daily: ₦290k)</option>
+                        <option value="Tier 2">Tier 2 (Max Bal: ₦500k | Daily: ₦490k)</option>
+                        <option value="Tier 3">Tier 3 (Unlimited | Daily: ₦5,000,000)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">New PIN / Password</label>
+                    <input type="password" id="editPassword" placeholder="Leave blank to keep current" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3.5 py-2.5 text-sm">
+                </div>
+            </div>
+            <div class="flex justify-end space-x-3 mt-6">
+                <button onclick="closeEditModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-sm rounded-lg font-medium">Cancel</button>
+                <button onclick="saveUserEdits()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-sm font-medium rounded-lg shadow-md">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        const API_URL = 'http://localhost:5000/api';
+        let currentAdmin = null;
+
+        function renderCustomerAvatar(profilePic, name, size = 'h-12 w-12') {
+            if (profilePic && profilePic.trim() !== '') {
+                return `<img src="${profilePic}" class="${size} rounded-full object-cover border border-slate-700 shadow-md flex-shrink-0" alt="${name || 'Customer'}">`;
+            }
+            const initial = name ? name.charAt(0).toUpperCase() : 'C';
+            return `<div class="${size} rounded-full bg-blue-600 flex items-center justify-center font-bold text-white text-base shadow-md flex-shrink-0">${initial}</div>`;
+        }
+
+        function switchAuthTab(tab) {
+            if (tab === 'login') {
+                document.getElementById('loginFormContainer').classList.remove('hidden');
+                document.getElementById('regFormContainer').classList.add('hidden');
+                document.getElementById('tabLoginBtn').className = 'flex-1 pb-3 text-sm font-semibold text-blue-400 border-b-2 border-blue-500';
+                document.getElementById('tabRegBtn').className = 'flex-1 pb-3 text-sm font-semibold text-slate-400 hover:text-slate-200';
+            } else {
+                document.getElementById('loginFormContainer').classList.add('hidden');
+                document.getElementById('regFormContainer').classList.remove('hidden');
+                document.getElementById('tabLoginBtn').className = 'flex-1 pb-3 text-sm font-semibold text-slate-400 hover:text-slate-200';
+                document.getElementById('tabRegBtn').className = 'flex-1 pb-3 text-sm font-semibold text-blue-400 border-b-2 border-blue-500';
+            }
+        }
+
+        async function handleLogin() {
+            const phone = document.getElementById('loginPhone').value.trim();
+            const pin = document.getElementById('loginPin').value.trim();
+            if(!phone || !pin) return alert('Please enter phone and PIN.');
+
+            try {
+                const res = await fetch(`${API_URL}/admin/login`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({phone, pin})
+                });
+                const data = await res.json();
+                if(res.ok) {
+                    currentAdmin = data;
+                    document.getElementById('authScreen').classList.add('hidden');
+                    document.getElementById('mainDashboard').classList.remove('hidden');
+                    document.getElementById('currentAdminName').innerText = currentAdmin.name;
+                    document.getElementById('adminRoleBadge').innerText = currentAdmin.role === 'super_admin' ? '⭐ Super Admin' : '🛡️️ Branch Admin';
+                    
+                    if(currentAdmin.role === 'super_admin') {
+                        document.getElementById('superAdminNav').classList.remove('hidden');
+                    }
+                    loadAnalyticsPage();
+                } else {
+                    alert(data.message || 'Login failed.');
+                }
+            } catch(e) { alert('Connection error: ' + e.message); }
+        }
+
+        async function handleRegister() {
+            const name = document.getElementById('regName').value.trim();
+            const phone = document.getElementById('regPhone').value.trim();
+            const pin = document.getElementById('regPin').value.trim();
+            const role = document.getElementById('regRole').value;
+            if(!name || !phone || !pin) return alert('Fill all fields.');
+
+            try {
+                const res = await fetch(`${API_URL}/admin/register`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({name, phone, pin, role})
+                });
+                const data = await res.json();
+                if(res.ok) {
+                    alert('Admin registered successfully!');
+                    switchAuthTab('login');
+                } else { alert(data.message); }
+            } catch(e) { alert(e.message); }
+        }
+
+        function handleLogout() {
+            currentAdmin = null;
+            document.getElementById('mainDashboard').classList.add('hidden');
+            document.getElementById('authScreen').classList.remove('hidden');
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.className = 'nav-btn w-full flex items-center px-5 py-3.5 text-base font-semibold rounded-xl text-slate-300 hover:bg-slate-800 hover:text-white transition-all');
+            event.currentTarget.className = 'nav-btn w-full flex items-center px-5 py-3.5 text-base font-semibold rounded-xl bg-blue-600 text-white transition-all shadow-lg shadow-blue-600/25';
+            
+            if(tab === 'analytics') loadAnalyticsPage();
+            else if(tab === 'pending') loadPendingPage();
+            else if(tab === 'customers') loadCustomersPage();
+            else if(tab === 'transactions') loadTransactionsPage();
+            else if(tab === 'broadcast') loadBroadcastPage();
+            else if(tab === 'chats') loadChatsPage();
+            else if(tab === 'requests') loadRequestsPage();
+        }
+
+        async function loadAnalyticsPage() {
+            document.getElementById('pageTitle').innerText = 'Live System Analytics & Overview';
+            const area = document.getElementById('contentArea');
+            area.innerHTML = '<p class="text-slate-400">Loading live analytics...</p>';
+
+            try {
+                const [usersRes, txRes] = await Promise.all([
+                    fetch(`${API_URL}/admin/users`),
+                    fetch(`${API_URL}/admin/transactions`)
+                ]);
+                const users = await usersRes.json();
+                const txs = await txRes.json();
+
+                const activeCount = users.filter(u => u.status === 'ACTIVE').length;
+                const pendingCount = users.filter(u => u.status === 'PENDING').length;
+                const totalVol = txs.reduce((acc, t) => acc + t.amount, 0);
+
+                area.innerHTML = `
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
+                            <p class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Total Customers</p>
+                            <h3 class="text-3xl font-bold text-white mt-2">${users.length}</h3>
+                            <p class="text-xs text-emerald-400 mt-1">${activeCount} Active Accounts</p>
+                        </div>
+                        <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
+                            <p class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Pending Approvals</p>
+                            <h3 class="text-3xl font-bold text-amber-400 mt-2">${pendingCount}</h3>
+                            <p class="text-xs text-slate-400 mt-1">Require admin review</p>
+                        </div>
+                        <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
+                            <p class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Total Transaction Volume</p>
+                            <h3 class="text-3xl font-bold text-cyan-400 mt-2">₦${totalVol.toLocaleString()}</h3>
+                            <p class="text-xs text-slate-400 mt-1">${txs.length} total transactions processed</p>
+                        </div>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl max-w-2xl mx-auto">
+                        <h4 class="text-base font-bold text-white mb-4 text-center">Account Status Distribution</h4>
+                        <canvas id="statusChart" class="max-h-72"></canvas>
+                    </div>
+                `;
+
+                const ctx = document.getElementById('statusChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Active', 'Pending', 'Frozen', 'Rejected'],
+                        datasets: [{
+                            data: [
+                                activeCount,
+                                pendingCount,
+                                users.filter(u => u.status === 'FROZEN').length,
+                                users.filter(u => u.status === 'REJECTED').length
+                            ],
+                            backgroundColor: ['#10b981', '#f59e0b', '#3b82f6', '#ef4444']
+                        }]
+                    },
+                    options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: '#cbd5e1' } } } }
+                });
+            } catch(e) { area.innerHTML = '<p class="text-red-500">Failed to load analytics.</p>'; }
+        }
+
+        async function loadPendingPage() {
+            document.getElementById('pageTitle').innerText = 'Pending Account Requests';
+            const area = document.getElementById('contentArea');
+            area.innerHTML = '<p class="text-slate-400">Loading pending accounts...</p>';
+            
+            try {
+                const res = await fetch(`${API_URL}/admin/pending-users`);
+                const users = await res.json();
+                if(users.length === 0) {
+                    area.innerHTML = '<div class="bg-slate-900 border border-slate-800 p-8 rounded-xl text-center text-slate-400 shadow-xl">No pending account requests at the moment.</div>';
+                    return;
+                }
+                
+                let html = '<div class="space-y-4">';
+                users.forEach(u => {
+                    const avatarHtml = renderCustomerAvatar(u.profilePic, u.name, 'h-12 w-12');
+                    html += `
+                        <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl flex items-center justify-between shadow-lg">
+                            <div class="flex items-center space-x-4">
+                                ${avatarHtml}
+                                <div>
+                                    <h4 class="font-bold text-base text-white">${u.name}</h4>
+                                    <p class="text-xs text-slate-400 mt-1">Phone: ${u.phone} | Email: ${u.email || 'N/A'} | Type: ${u.accountType || 'Savings'} | Acc No: <span class="font-mono text-cyan-400">${u.accountNo}</span></p>
+                                </div>
+                            </div>
+                            <div class="space-x-3">
+                                <button onclick="approveUser('${u.accountNo}')" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-xs font-semibold rounded-lg shadow-md transition">Approve</button>
+                                <button onclick="rejectUser('${u.accountNo}')" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-xs font-semibold rounded-lg shadow-md transition">Reject</button>
+                            </div>
+                        </div>`;
+                });
+                html += '</div>';
+                area.innerHTML = html;
+            } catch(e) { area.innerHTML = '<p class="text-red-500">Failed to load data.</p>'; }
+        }
+
+        async function approveUser(accountNo) {
+            await fetch(`${API_URL}/admin/user/approve`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({accountNumber: accountNo})});
+            loadPendingPage();
+        }
+        async function rejectUser(accountNo) {
+            await fetch(`${API_URL}/admin/user/reject`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({accountNumber: accountNo})});
+            loadPendingPage();
+        }
+
+        async function loadCustomersPage() {
+            document.getElementById('pageTitle').innerText = 'Customer Management & Card Assignments';
+            const area = document.getElementById('contentArea');
+            area.innerHTML = '<p class="text-slate-400">Loading customers...</p>';
+
+            try {
+                const res = await fetch(`${API_URL}/admin/users`);
+                const users = await res.json();
+                let html = '<div class="space-y-4">';
+                users.forEach(u => {
+                    const avatarHtml = renderCustomerAvatar(u.profilePic, u.name, 'h-12 w-12');
+                    let deleteBtn = currentAdmin.role === 'super_admin' 
+                        ? `<button onclick="superDeleteUser('${u.accountNo}')" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-xs rounded-lg font-medium transition">Delete</button>`
+                        : `<button onclick="applyAction('DELETE_CUSTOMER', '${u.accountNo}', '${u.name}')" class="px-3 py-1.5 bg-amber-700 hover:bg-amber-800 text-xs rounded-lg font-medium transition">Apply Delete</button>`;
+
+                    let tier3Btn = u.kycTier !== 'Tier 3' ? `<button onclick="requestTier3('${u.accountNo}', '${u.name}')" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-xs rounded-lg font-medium transition">Req Tier 3</button>` : '';
+
+                    html += `
+                        <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl flex items-center justify-between shadow-lg">
+                            <div class="flex items-center space-x-4">
+                                ${avatarHtml}
+                                <div>
+                                    <h4 class="font-bold text-white text-base">${u.name} <span class="text-xs font-mono text-cyan-400 ml-2">(Acc: ${u.accountNo})</span></h4>
+                                    <p class="text-xs text-slate-400 mt-1">Balance: <strong class="text-white">₦${u.balance.toLocaleString()}</strong> | KYC: <span class="text-amber-400 font-bold">${u.kycTier || 'Tier 1'}</span> | Card: <span class="text-cyan-300">${u.cardStatus || 'NOT_REQUESTED'}</span> | Status: <span class="text-blue-400 font-semibold">${u.status}</span></p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <button onclick="assignCard('${u.accountNo}')" class="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-xs rounded-lg font-medium transition">Assign Card</button>
+                                ${tier3Btn}
+                                <button onclick="adjustBalance('${u.phone}', 'CREDIT')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-xs rounded-lg font-medium transition">Credit</button>
+                                <button onclick="toggleFreeze('${u.accountNo}', '${u.status}')" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs rounded-lg font-medium transition">Freeze</button>
+                                <button onclick="openEditModal('${u.accountNo}', '${u.phone}', '${encodeURIComponent(u.email || '')}', '${u.kycTier || 'Tier 1'}')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-xs rounded-lg font-medium transition">Edit</button>
+                                ${deleteBtn}
+                            </div>
+                        </div>`;
+                });
+                html += '</div>';
+                area.innerHTML = html;
+            } catch(e) { area.innerHTML = '<p class="text-red-500">Error loading customers.</p>'; }
+        }
+
+        async function assignCard(accountNo) {
+            const res = await fetch(`${API_URL}/admin/assign-card`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({accountNo})
+            });
+            const data = await res.json();
+            if(res.ok) { alert(data.message); loadCustomersPage(); } else { alert(data.message); }
+        }
+
+        async function requestTier3(accountNo, name) {
+            if(confirm(`Submit request to upgrade ${name} to Tier 3?`)) {
+                await fetch(`${API_URL}/admin/request-action`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({adminPhone: currentAdmin.phone, adminName: currentAdmin.name, actionType: 'TIER3_UPGRADE', targetAccountNo: accountNo, targetName: name})
+                });
+                alert('Tier 3 upgrade request sent to Super Admin.');
+            }
+        }
+
+        async function adjustBalance(phone, type) {
+            const amt = prompt(`Enter amount to ${type}:`);
+            if(!amt) return;
+            const res = await fetch(`${API_URL}/admin/balance-adjust`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({phone, amount: parseFloat(amt), type})});
+            const data = await res.json();
+            if(res.ok) { alert(data.message); loadCustomersPage(); } else { alert(data.message || 'Balance adjustment failed.'); }
+        }
+
+        async function toggleFreeze(accountNo, currentStatus) {
+            const status = currentStatus === 'FROZEN' ? 'ACTIVE' : 'FROZEN';
+            await fetch(`${API_URL}/admin/users/${accountNo}/status`, {method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({status})});
+            loadCustomersPage();
+        }
+
+        async function superDeleteUser(accountNo) {
+            if(confirm('Are you sure you want to permanently delete this customer?')) {
+                await fetch(`${API_URL}/admin/user/${accountNo}`, {method: 'DELETE'});
+                loadCustomersPage();
+            }
+        }
+
+        async function applyAction(actionType, accountNo, name) {
+            if(confirm('Submit request to Super Admin?')) {
+                await fetch(`${API_URL}/admin/request-action`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({adminPhone: currentAdmin.phone, adminName: currentAdmin.name, actionType, targetAccountNo: accountNo, targetName: name})
+                });
+                alert('Request sent to Super Admin.');
+            }
+        }
+
+        function openEditModal(accountNo, phone, encodedEmail, kycTier) {
+            document.getElementById('editAccountNo').value = accountNo;
+            document.getElementById('editPhone').value = phone;
+            document.getElementById('editEmail').value = decodeURIComponent(encodedEmail);
+            document.getElementById('editKycTier').value = kycTier || 'Tier 1';
+            document.getElementById('editPassword').value = '';
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+
+        function closeEditModal() { document.getElementById('editModal').classList.add('hidden'); }
+
+        async function saveUserEdits() {
+            const accountNo = document.getElementById('editAccountNo').value;
+            const phone = document.getElementById('editPhone').value;
+            const email = document.getElementById('editEmail').value;
+            const kycTier = document.getElementById('editKycTier').value;
+            const password = document.getElementById('editPassword').value;
+
+            await fetch(`${API_URL}/admin/user/update-creds/${accountNo}`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({phone, email, password: password || undefined})
+            });
+
+            await fetch(`${API_URL}/admin/users/${accountNo}/kyc`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({kycTier})
+            });
+
+            closeEditModal();
+            loadCustomersPage();
+            alert('Customer updated successfully!');
+        }
+
+        async function loadTransactionsPage() {
+            document.getElementById('pageTitle').innerText = 'Transactions & Statement Download';
+            const area = document.getElementById('contentArea');
+            area.innerHTML = `
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl mb-6 flex items-center space-x-4 shadow-xl">
+                    <input type="text" id="stmtAccNo" placeholder="Enter Customer Account Number" class="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-sm w-80 focus:outline-none focus:border-blue-500 font-mono">
+                    <button onclick="downloadStatement('PDF')" class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-sm font-semibold rounded-lg shadow-md transition"><i class="fas fa-file-pdf mr-2"></i> Download PDF</button>
+                    <button onclick="downloadStatement('JPG')" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-sm font-semibold rounded-lg border border-slate-700 transition"><i class="fas fa-file-image mr-2"></i> Download JPG</button>
+                </div>
+                <div id="txList" class="space-y-3"></div>`;
+
+            const res = await fetch(`${API_URL}/admin/transactions`);
+            const txs = await res.json();
+            let html = '';
+            txs.forEach(t => {
+                html += `<div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center justify-between text-sm shadow-md">
+                    <div><span class="text-blue-400 font-bold">${t.type}</span> - ₦${t.amount.toLocaleString()} <span class="text-slate-400 text-xs ml-2">(${t.note || 'No note'})</span></div>
+                    <span class="text-xs text-slate-500">${new Date(t.date).toLocaleDateString()}</span>
+                </div>`;
+            });
+            document.getElementById('txList').innerHTML = html;
+        }
+
+        async function downloadStatement(format) {
+            const accNo = document.getElementById('stmtAccNo').value.trim();
+            if(!accNo) return alert('Enter account number.');
+            const res = await fetch(`${API_URL}/admin/statement/${accNo}`);
+            if(res.ok) {
+                const data = await res.json();
+                let content = `=== PAYDESKTOP BANK STATEMENT ===\nCustomer: ${data.customer.name}\nAccount: ${data.customer.accountNo}\nKYC Tier: ${data.customer.kycTier || 'Tier 1'}\nBalance: ₦${data.customer.balance}\n\nTransactions:\n`;
+                data.transactions.forEach(t => content += `[${t.date.slice(0,10)}] ${t.type} - ₦${t.amount} (${t.note || ''})\n`);
+                
+                const blob = new Blob([content], {type: 'text/plain'});
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `statement_${accNo}.${format.toLowerCase()}`;
+                a.click();
+            } else { alert('Customer account not found.'); }
+        }
+
+        async function loadBroadcastPage() {
+            document.getElementById('pageTitle').innerText = 'Dynamic Broadcast Management';
+            const area = document.getElementById('contentArea');
+            area.innerHTML = `
+                <div class="bg-slate-900 border border-slate-800 p-6 rounded-xl max-w-2xl space-y-4 shadow-xl mb-6">
+                    <label class="block text-xs font-medium text-slate-400">Post New Marquee Broadcast Banner</label>
+                    <textarea id="broadcastText" rows="3" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm focus:outline-none focus:border-blue-500" placeholder="Type scrolling announcement ticker here..."></textarea>
+                    <button onclick="sendBroadcast()" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-sm font-semibold rounded-lg shadow-md transition">Publish Banner</button>
+                </div>
+                <div id="broadcastList" class="space-y-3 max-w-2xl"></div>`;
+            fetchBroadcasts();
+        }
+
+        async function fetchBroadcasts() {
+            const res = await fetch(`${API_URL}/admin/broadcasts`);
+            const list = await res.json();
+            const container = document.getElementById('broadcastList');
+            if(list.length === 0) {
+                container.innerHTML = '<p class="text-slate-500 text-xs">No active broadcasts.</p>';
+                return;
+            }
+            container.innerHTML = list.map(b => `
+                <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex justify-between items-center text-xs">
+                    <span class="text-cyan-300">📢 ${b.text}</span>
+                    <button onclick="deleteBroadcast('${b._id}')" class="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-white font-medium">Delete</button>
+                </div>
+            `).join('');
+        }
+
+        async function sendBroadcast() {
+            const text = document.getElementById('broadcastText').value.trim();
+            if(!text) return alert('Message cannot be empty.');
+            const res = await fetch(`${API_URL}/admin/broadcast`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({text})});
+            if(res.ok) {
+                alert('Broadcast published successfully!');
+                document.getElementById('broadcastText').value = '';
+                fetchBroadcasts();
+            }
+        }
+
+        async function deleteBroadcast(id) {
+            await fetch(`${API_URL}/admin/broadcast/${id}`, {method: 'DELETE'});
+            fetchBroadcasts();
+        }
+
+        async function loadChatsPage() {
+            document.getElementById('pageTitle').innerText = 'Live Support Chats';
+            const area = document.getElementById('contentArea');
+            area.innerHTML = '<p class="text-slate-400">Loading chats...</p>';
+
+            try {
+                const [chatsRes, usersRes] = await Promise.all([
+                    fetch(`${API_URL}/admin/chats`),
+                    fetch(`${API_URL}/admin/users`)
+                ]);
+                const chatMap = await chatsRes.json();
+                const users = await usersRes.json();
+                const userMap = {};
+                users.forEach(u => userMap[u.phone] = u);
+
+                let html = '<div class="space-y-6">';
+                for(const [phone, msgs] of Object.entries(chatMap)) {
+                    const customer = userMap[phone] || { name: 'Customer', profilePic: '' };
+                    const avatarHtml = renderCustomerAvatar(customer.profilePic, customer.name, 'h-10 w-10');
+
+                    html += `<div class="bg-slate-900 border border-slate-800 p-5 rounded-xl shadow-xl">
+                        <div class="flex items-center space-x-3 mb-3">
+                            ${avatarHtml}
+                            <div>
+                                <h4 class="font-bold text-blue-400 text-base">${customer.name}</h4>
+                                <p class="text-xs text-slate-400">Phone: ${phone}</p>
+                            </div>
+                        </div>
+                        <div class="space-y-2 mb-4 max-h-48 overflow-y-auto pr-2">`;
+                    msgs.forEach(m => {
+                        html += `<div class="text-xs bg-slate-800 p-2.5 rounded-lg border border-slate-700/60"><span class="font-bold uppercase text-slate-300">${m.senderRole}:</span> ${m.message}</div>`;
+                    });
+                    html += `</div>
+                        <div class="flex space-x-3">
+                            <input type="text" id="reply_${phone}" placeholder="Type reply..." class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                            <button onclick="sendChatReply('${phone}')" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-xs font-semibold rounded-lg shadow-md transition">Send</button>
+                        </div>
+                    </div>`;
+                }
+                html += '</div>';
+                area.innerHTML = html;
+            } catch(e) { area.innerHTML = '<p class="text-red-500">Error loading chats.</p>'; }
+        }
+
+        async function sendChatReply(phone) {
+            const input = document.getElementById(`reply_${phone}`);
+            const message = input.value.trim();
+            if(!message) return;
+
+            await fetch(`${API_URL}/chat/send`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({userPhone: phone, senderRole: currentAdmin.role, message})
+            });
+            loadChatsPage();
+        }
+
+        async function loadRequestsPage() {
+            document.getElementById('pageTitle').innerText = 'Pending Admin Requests';
+            const area = document.getElementById('contentArea');
+            area.innerHTML = '<p class="text-slate-400">Loading requests...</p>';
+
+            try {
+                const res = await fetch(`${API_URL}/admin/requests`);
+                const requests = await res.json();
+                if(requests.length === 0) {
+                    area.innerHTML = '<div class="bg-slate-900 border border-slate-800 p-8 rounded-xl text-center text-slate-400 shadow-xl">No pending admin requests.</div>';
+                    return;
+                }
+
+                let html = '<div class="space-y-4">';
+                requests.forEach(r => {
+                    html += `<div class="bg-slate-900 border border-slate-800 p-5 rounded-xl flex items-center justify-between shadow-xl">
+                        <div>
+                            <h4 class="font-bold text-white">Admin: ${r.adminName} (${r.adminPhone})</h4>
+                            <p class="text-xs text-slate-400 mt-1">Action: <span class="text-amber-400 font-semibold">${r.actionType}</span> on customer: <span class="text-white font-semibold">${r.targetName}</span> (Acc: ${r.targetAccountNo})</p>
+                        </div>
+                        <div class="space-x-3">
+                            <button onclick="resolveRequest('${r._id}', 'APPROVED')" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-xs font-semibold rounded-lg shadow-md transition">Approve</button>
+                            <button onclick="resolveRequest('${r._id}', 'REJECTED')" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-xs font-semibold rounded-lg shadow-md transition">Reject</button>
+                        </div>
+                    </div>`;
+                });
+                html += '</div>';
+                area.innerHTML = html;
+            } catch(e) { area.innerHTML = '<p class="text-red-500">Error loading requests.</p>'; }
+        }
+
+        async function resolveRequest(id, decision) {
+            await fetch(`${API_URL}/admin/requests/${id}/resolve`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({decision})});
+            loadRequestsPage();
+        }
+    </script>
+</body>
+</html>

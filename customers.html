@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PayDesktop Bank - Customer Portal</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Smooth Scrolling Marquee Banner */
+        .marquee-container {
+            overflow: hidden;
+            white-space: nowrap;
+            position: relative;
+        }
+        .marquee-content {
+            display: inline-block;
+            animation: marquee 25s linear infinite;
+        }
+        @keyframes marquee {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col">
+    <!-- Main App Container -->
+    <div id="app" class="flex-1 flex flex-col">
+        <!-- Auth View -->
+        <div id="auth-view" class="flex-1 flex items-center justify-center p-4">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-8 shadow-2xl">
+                <div class="text-center mb-6">
+                    <h1 class="text-2xl font-bold text-blue-400">PayDesktop Bank</h1>
+                    <p class="text-xs text-slate-400 mt-1">Secure Digital Banking Portal</p>
+                </div>
+
+                <!-- Auth Tabs -->
+                <div class="flex bg-slate-950 p-1 rounded-xl mb-6 border border-slate-800">
+                    <button onclick="switchAuthTab('login')" id="tab-login-btn" class="flex-1 py-2 text-xs font-semibold rounded-lg bg-blue-600 text-white transition">Login</button>
+                    <button onclick="switchAuthTab('register')" id="tab-reg-btn" class="flex-1 py-2 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition">Open Account</button>
+                </div>
+
+                <!-- Login Form -->
+                <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Phone Number</label>
+                        <input type="text" id="login-phone" required placeholder="08012345678" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">4-Digit Security PIN</label>
+                        <input type="password" id="login-pin" maxlength="4" required placeholder="••••" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-sm tracking-widest text-center focus:outline-none focus:border-blue-500">
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg text-sm transition shadow-lg shadow-blue-600/20">Secure Login</button>
+                </form>
+
+                <!-- Register Form -->
+                <form id="register-form" onsubmit="handleRegister(event)" class="space-y-3 hidden">
+                    <div>
+                        <label class="block text-[11px] font-medium text-slate-400 mb-1">Full Name</label>
+                        <input type="text" id="reg-name" required placeholder="John Doe" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-medium text-slate-400 mb-1">Phone Number</label>
+                        <input type="text" id="reg-phone" required placeholder="08012345678" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-medium text-slate-400 mb-1">Email Address</label>
+                        <input type="email" id="reg-email" required placeholder="customer@paydesktop.com" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-medium text-slate-400 mb-1">Create 4-Digit PIN</label>
+                        <input type="password" id="reg-pin" maxlength="4" required placeholder="••••" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs tracking-widest text-center focus:outline-none focus:border-emerald-500">
+                    </div>
+                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-lg text-xs transition shadow-lg shadow-emerald-600/20 mt-2">Register Account</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Dashboard View -->
+        <div id="dashboard-view" class="flex-1 flex flex-col hidden">
+            <!-- Header -->
+            <header class="bg-slate-900 border-b border-slate-800 h-16 flex items-center justify-between px-6">
+                <div class="flex items-center space-x-3">
+                    <span class="text-blue-400 font-bold text-lg"><i class="fa-solid fa-vault mr-2"></i>PayDesktop Bank</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-3 bg-slate-950/60 border border-slate-800 px-3 py-1.5 rounded-full">
+                        <div id="header-avatar" class="w-7 h-7 rounded-full bg-blue-600/20 text-blue-400 flex items-center justify-center text-xs font-bold overflow-hidden border border-blue-500/30">
+                            <i class="fa-solid fa-user"></i>
+                        </div>
+                        <span id="user-display-name" class="text-sm font-semibold text-slate-300"></span>
+                    </div>
+                    <button onclick="logout()" class="bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition border border-red-500/30">Logout</button>
+                </div>
+            </header>
+
+            <!-- Navigation Bar -->
+            <nav class="bg-slate-900/50 border-b border-slate-800 px-6 flex space-x-2 overflow-x-auto">
+                <button onclick="switchTab('overview', this)" class="nav-btn px-4 py-3 text-xs font-semibold text-blue-400 border-b-2 border-blue-500 transition flex items-center space-x-2"><i class="fa-solid fa-house"></i><span>Overview</span></button>
+                <button onclick="switchTab('opay', this)" class="nav-btn px-4 py-3 text-xs font-semibold text-slate-400 hover:text-white transition flex items-center space-x-2"><i class="fa-solid fa-grid-2"></i><span>OPay Services</span></button>
+                <button onclick="switchTab('transfer', this)" class="nav-btn px-4 py-3 text-xs font-semibold text-slate-400 hover:text-white transition flex items-center space-x-2"><i class="fa-solid fa-arrow-right-arrow-left"></i><span>Transfer</span></button>
+                <button onclick="switchTab('history', this)" class="nav-btn px-4 py-3 text-xs font-semibold text-slate-400 hover:text-white transition flex items-center space-x-2"><i class="fa-solid fa-clock-rotate-left"></i><span>History</span></button>
+                <button onclick="switchTab('settings', this)" class="nav-btn px-4 py-3 text-xs font-semibold text-slate-400 hover:text-white transition flex items-center space-x-2"><i class="fa-solid fa-gear"></i><span>Settings</span></button>
+                <button onclick="switchTab('chat', this)" class="nav-btn px-4 py-3 text-xs font-semibold text-slate-400 hover:text-white transition flex items-center space-x-2"><i class="fa-solid fa-headset"></i><span>Support Chat</span></button>
+            </nav>
+
+            <!-- Main Content Area -->
+            <main class="flex-1 p-6 max-w-7xl w-full mx-auto overflow-y-auto">
+                <!-- Overview Tab -->
+                <div id="tab-overview" class="tab-pane space-y-6">
+                    <!-- Moving Broadcast Marquee Banner -->
+                    <div id="announcement-banner" class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex items-center space-x-3 text-xs text-sky-400 shadow-md marquee-container">
+                        <i class="fa-solid fa-bullhorn text-base flex-shrink-0 ml-2"></i>
+                        <div class="marquee-content">
+                            <span id="announcement-text">Welcome to PayDesktop Bank - Secure Digital Banking Portal</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-slate-900 to-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <span class="text-[11px] font-bold text-slate-400 tracking-wider">AVAILABLE BALANCE</span>
+                                <h2 id="overview-balance" class="text-3xl font-extrabold text-white mt-1">₦0.00</h2>
+                            </div>
+                            <span id="overview-tier" class="px-3 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-semibold rounded-full">Tier 1</span>
+                        </div>
+                        <div class="flex flex-wrap gap-4 pt-4 border-t border-slate-800/80 text-xs text-slate-300">
+                            <div><span class="text-slate-500">Account No:</span> <strong id="overview-acc" class="text-sky-400 font-mono">---</strong></div>
+                            <div><span class="text-slate-500">Max Balance:</span> <strong id="overview-max-b" class="text-emerald-400">₦300,000</strong></div>
+                            <div><span class="text-slate-500">Daily Limit:</span> <strong id="overview-daily" class="text-blue-400">₦290,000</strong></div>
+                        </div>
+                    </div>
+
+                    <button onclick="refreshUserData()" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 px-4 py-2 rounded-xl text-xs font-semibold transition flex items-center space-x-2">
+                        <i class="fa-solid fa-rotate"></i><span>Refresh Balance</span>
+                    </button>
+                </div>
+
+                <!-- OPay Services Tab -->
+                <div id="tab-opay" class="tab-pane hidden space-y-6">
+                    <h2 class="text-lg font-bold text-white mb-4">OPay Services & Quick Actions</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <button onclick="switchTab('transfer', document.querySelectorAll('.nav-btn')[2])" class="bg-slate-900 hover:bg-slate-850 border border-slate-800 p-6 rounded-xl text-left transition space-y-3 group">
+                            <div class="w-10 h-10 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center text-lg group-hover:scale-110 transition"><i class="fa-solid fa-money-bill-transfer"></i></div>
+                            <h3 class="font-bold text-sm">Transfers</h3>
+                            <p class="text-xs text-slate-400">Send to Bank Accounts</p>
+                        </button>
+                        <button onclick="openModal('airtime-modal')" class="bg-slate-900 hover:bg-slate-850 border border-slate-800 p-6 rounded-xl text-left transition space-y-3 group">
+                            <div class="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-lg group-hover:scale-110 transition"><i class="fa-solid fa-mobile-screen"></i></div>
+                            <h3 class="font-bold text-sm">Airtime & Data</h3>
+                            <p class="text-xs text-slate-400">Instant Recharge</p>
+                        </button>
+                        <button onclick="openModal('betting-modal')" class="bg-slate-900 hover:bg-slate-850 border border-slate-800 p-6 rounded-xl text-left transition space-y-3 group">
+                            <div class="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center text-lg group-hover:scale-110 transition"><i class="fa-solid fa-futbol"></i></div>
+                            <h3 class="font-bold text-sm">Betting</h3>
+                            <p class="text-xs text-slate-400">Fund Bet Accounts</p>
+                        </button>
+                        <button onclick="openModal('card-modal')" class="bg-slate-900 hover:bg-slate-850 border border-slate-800 p-6 rounded-xl text-left transition space-y-3 group">
+                            <div class="w-10 h-10 rounded-lg bg-sky-500/10 text-sky-400 flex items-center justify-center text-lg group-hover:scale-110 transition"><i class="fa-solid fa-credit-card"></i></div>
+                            <h3 class="font-bold text-sm">ATM Card</h3>
+                            <p class="text-xs text-slate-400">Request & View Card</p>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Transfer Tab with All Nigerian Banks -->
+                <div id="tab-transfer" class="tab-pane hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+                        <h2 class="text-base font-bold text-white mb-2">Send Money</h2>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Select Bank</label>
+                            <select id="transfer-bank" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500">
+                                <option value="PayDesktop Bank">PayDesktop Bank (Internal)</option>
+                                <option value="OPay">OPay</option>
+                                <option value="Moniepoint">Moniepoint MFB</option>
+                                <option value="PalmPay">PalmPay</option>
+                                <option value="Kuda">Kuda MFB</option>
+                                <option value="Access Bank">Access Bank</option>
+                                <option value="GTBank">Guaranty Trust Bank (GTB)</option>
+                                <option value="Zenith Bank">Zenith Bank</option>
+                                <option value="First Bank">First Bank of Nigeria</option>
+                                <option value="UBA">United Bank for Africa (UBA)</option>
+                                <option value="Fidelity Bank">Fidelity Bank</option>
+                                <option value="Stanbic IBTC">Stanbic IBTC Bank</option>
+                                <option value="Sterling Bank">Sterling Bank</option>
+                                <option value="Union Bank">Union Bank of Nigeria</option>
+                                <option value="FCMB">First City Monument Bank (FCMB)</option>
+                                <option value="Ecobank">Ecobank Nigeria</option>
+                                <option value="Polaris Bank">Polaris Bank</option>
+                                <option value="Wema Bank">Wema Bank</option>
+                                <option value="Jaiz Bank">Jaiz Bank</option>
+                                <option value="Paga">Paga</option>
+                                <option value="Lotus Bank">Lotus Bank</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Recipient Account Number</label>
+                            <input type="text" id="transfer-acc" maxlength="10" placeholder="10-digit account no" oninput="verifyRecipient(this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 font-mono">
+                            <p id="transfer-recipient-name" class="text-xs font-semibold mt-1 text-emerald-400"></p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Amount (₦)</label>
+                            <input type="number" id="transfer-amt" placeholder="0.00" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Transfer Note (Optional)</label>
+                            <input type="text" id="transfer-note" placeholder="For payment / services" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500">
+                        </div>
+                        <button onclick="promptPinForTransfer()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-lg text-sm transition shadow-lg shadow-emerald-600/20">Transfer Funds Now</button>
+                    </div>
+                    <!-- Saved Beneficiaries Sidebar -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col">
+                        <h3 class="text-sm font-bold text-white mb-4">Saved Beneficiaries</h3>
+                        <div id="beneficiaries-list" class="flex-1 overflow-y-auto space-y-2 pr-1">
+                            <p class="text-xs text-slate-500">No beneficiaries saved yet.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- History Tab -->
+                <div id="tab-history" class="tab-pane hidden space-y-4">
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center justify-between shadow-md">
+                        <h2 class="text-sm font-bold text-white">Transaction History & Statements</h2>
+                        <button onclick="downloadStatement()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-xs font-semibold transition flex items-center space-x-2">
+                            <i class="fa-solid fa-file-arrow-down"></i><span>Export Statement (TXT)</span>
+                        </button>
+                    </div>
+                    <div id="history-list" class="space-y-3">
+                        <p class="text-xs text-slate-500">Loading transactions...</p>
+                    </div>
+                </div>
+
+                <!-- Settings Tab -->
+                <div id="tab-settings" class="tab-pane hidden space-y-6 max-w-2xl">
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+                        <h2 class="text-base font-bold text-white">Account Settings & Profile</h2>
+                        
+                        <div class="flex items-center space-x-4">
+                            <div id="settings-avatar" class="w-16 h-16 rounded-full bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 text-2xl font-bold overflow-hidden">
+                                <i class="fa-solid fa-user"></i>
+                            </div>
+                            <div>
+                                <label class="cursor-pointer bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-lg text-xs font-semibold transition border border-slate-700 inline-block">
+                                    Upload Picture <input type="file" accept="image/*" onchange="uploadProfilePicture(event)" class="hidden">
+                                </label>
+                                <p class="text-[11px] text-slate-500 mt-1">JPG, PNG supported (Saved to your account).</p>
+                            </div>
+                        </div>
+
+                        <form onsubmit="updateProfile(event)" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Phone Number</label>
+                                <input type="text" id="settings-phone" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Email Address</label>
+                                <input type="email" id="settings-email" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">New Security PIN (Optional)</label>
+                                <input type="password" id="settings-pin" maxlength="4" placeholder="••••" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-sm tracking-widest focus:outline-none focus:border-blue-500">
+                            </div>
+                            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg text-sm transition shadow-lg shadow-blue-600/20">Save Changes</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Support Chat Tab -->
+                <div id="tab-chat" class="tab-pane hidden flex flex-col h-[calc(100vh-12rem)]">
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl flex flex-col flex-1 shadow-xl overflow-hidden">
+                        <div class="p-4 border-b border-slate-800 bg-slate-900/80 font-bold text-sm text-white">
+                            <i class="fa-solid fa-headset mr-2 text-blue-400"></i>Live Support Chat
+                        </div>
+                        <div id="chat-messages" class="flex-1 p-4 overflow-y-auto space-y-3">
+                            <p class="text-xs text-slate-500 text-center">Loading chat messages...</p>
+                        </div>
+                        <div class="p-4 border-t border-slate-800 bg-slate-900/80 flex space-x-3">
+                            <input type="text" id="chat-input" placeholder="Type your message to support..." onkeydown="if(event.key==='Enter') sendChatMessage()" class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500">
+                            <button onclick="sendChatMessage()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-semibold transition shadow-lg shadow-blue-600/20">Send</button>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- PIN Verification Modal -->
+    <div id="pin-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+        <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl space-y-4 text-center">
+            <h3 class="text-base font-bold text-white"><i class="fa-solid fa-lock mr-2 text-amber-400"></i>Security Verification</h3>
+            <p class="text-xs text-slate-400">Please enter your 4-digit PIN to authorize transaction:</p>
+            <input type="password" id="auth-pin-input" maxlength="4" placeholder="••••" class="w-48 mx-auto bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-center text-lg tracking-widest focus:outline-none focus:border-blue-500 block">
+            <div class="flex space-x-3 pt-2">
+                <button onclick="closePinModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 py-2 rounded-lg text-xs font-semibold transition">Cancel</button>
+                <button onclick="confirmPinAction()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg text-xs font-semibold transition">Authorize</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Airtime Modal -->
+    <div id="airtime-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+        <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 class="text-base font-bold text-white"><i class="fa-solid fa-mobile-screen mr-2 text-emerald-400"></i>Instant Airtime</h3>
+                <button onclick="closeModal('airtime-modal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div>
+                <label class="block text-xs text-slate-400 mb-1">Network Provider</label>
+                <select id="airtime-net" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm">
+                    <option value="MTN">MTN</option>
+                    <option value="Airtel">Airtel</option>
+                    <option value="Glo">Glo</option>
+                    <option value="9mobile">9mobile</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs text-slate-400 mb-1">Phone Number</label>
+                <input type="text" id="airtime-phone" placeholder="08012345678" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm">
+            </div>
+            <div>
+                <label class="block text-xs text-slate-400 mb-1">Amount (₦)</label>
+                <input type="number" id="airtime-amt" placeholder="1000" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm">
+            </div>
+            <button onclick="submitAirtime()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg text-sm font-semibold transition">Purchase Airtime</button>
+        </div>
+    </div>
+
+    <!-- Betting Modal -->
+    <div id="betting-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+        <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 class="text-base font-bold text-white"><i class="fa-solid fa-futbol mr-2 text-amber-400"></i>Betting Funding</h3>
+                <button onclick="closeModal('betting-modal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div>
+                <label class="block text-xs text-slate-400 mb-1">Betting Provider</label>
+                <select id="betting-prov" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm">
+                    <option value="Bet9ja">Bet9ja</option>
+                    <option value="SportyBet">SportyBet</option>
+                    <option value="1xBet">1xBet</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs text-slate-400 mb-1">Customer / User ID</label>
+                <input type="text" id="betting-cid" placeholder="Enter ID" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm">
+            </div>
+            <div>
+                <label class="block text-xs text-slate-400 mb-1">Amount (₦)</label>
+                <input type="number" id="betting-amt" placeholder="2000" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm">
+            </div>
+            <button onclick="submitBetting()" class="w-full bg-amber-600 hover:bg-amber-700 text-white py-2.5 rounded-lg text-sm font-semibold transition">Fund Bet Account</button>
+        </div>
+    </div>
+
+    <!-- Card Modal -->
+    <div id="card-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+        <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl space-y-4 text-center">
+            <div class="flex justify-between items-center">
+                <h3 class="text-base font-bold text-white"><i class="fa-solid fa-credit-card mr-2 text-sky-400"></i>ATM Card Management</h3>
+                <button onclick="closeModal('card-modal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="card-content" class="py-4">
+                <p class="text-xs text-slate-400">Loading card status...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        const API_URL = 'http://localhost:5000/api';
+        let currentUser = null;
+        let pendingActionCallback = null;
+        let cachedTransactions = [];
+
+        function switchAuthTab(tab) {
+            if (tab === 'login') {
+                document.getElementById('login-form').classList.remove('hidden');
+                document.getElementById('register-form').classList.add('hidden');
+                document.getElementById('tab-login-btn').className = 'flex-1 py-2 text-xs font-semibold rounded-lg bg-blue-600 text-white transition';
+                document.getElementById('tab-reg-btn').className = 'flex-1 py-2 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition';
+            } else {
+                document.getElementById('login-form').classList.add('hidden');
+                document.getElementById('register-form').classList.remove('hidden');
+                document.getElementById('tab-login-btn').className = 'flex-1 py-2 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition';
+                document.getElementById('tab-reg-btn').className = 'flex-1 py-2 text-xs font-semibold rounded-lg bg-emerald-600 text-white transition';
+            }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const phone = document.getElementById('login-phone').value.trim();
+            const pin = document.getElementById('login-pin').value.trim();
+            try {
+                const res = await fetch(`${API_URL}/user/login`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({phone, pin})
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    currentUser = data;
+                    document.getElementById('auth-view').classList.add('hidden');
+                    document.getElementById('dashboard-view').classList.remove('hidden');
+                    updateDashboardUI();
+                    loadOverview();
+                } else {
+                    alert(data.message || 'Login failed.');
+                }
+            } catch (err) { alert('Connection error: ' + err.message); }
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            const name = document.getElementById('reg-name').value.trim();
+            const phone = document.getElementById('reg-phone').value.trim();
+            const email = document.getElementById('reg-email').value.trim();
+            const pin = document.getElementById('reg-pin').value.trim();
+            try {
+                const res = await fetch(`${API_URL}/user/register`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({name, phone, email, pin})
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    alert(`Account created successfully! Acc No: ${data.accountNo || 'N/A'}. Awaiting Admin approval.`);
+                    switchAuthTab('login');
+                } else {
+                    alert(data.message || 'Registration failed.');
+                }
+            } catch (err) { alert('Error: ' + err.message); }
+        }
+
+        function logout() {
+            currentUser = null;
+            document.getElementById('dashboard-view').classList.add('hidden');
+            document.getElementById('auth-view').classList.remove('hidden');
+            document.getElementById('login-phone').value = '';
+            document.getElementById('login-pin').value = '';
+        }
+
+        function switchTab(tabName, btnEl) {
+            document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+            
+            document.querySelectorAll('.nav-btn').forEach(b => {
+                b.className = 'nav-btn px-4 py-3 text-xs font-semibold text-slate-400 hover:text-white transition flex items-center space-x-2';
+            });
+            if(btnEl) {
+                btnEl.className = 'nav-btn px-4 py-3 text-xs font-semibold text-blue-400 border-b-2 border-blue-500 transition flex items-center space-x-2';
+            }
+
+            if(tabName === 'overview') loadOverview();
+            else if(tabName === 'transfer') loadBeneficiaries();
+            else if(tabName === 'history') loadHistory();
+            else if(tabName === 'settings') loadSettings();
+            else if(tabName === 'chat') loadChat();
+        }
+
+        function updateDashboardUI() {
+            if(!currentUser) return;
+            document.getElementById('user-display-name').innerText = currentUser.name;
+            if(currentUser.avatar) {
+                const imgHtml = `<img src="${currentUser.avatar}" class="w-full h-full object-cover">`;
+                document.getElementById('header-avatar').innerHTML = imgHtml;
+                document.getElementById('settings-avatar').innerHTML = imgHtml;
+            } else {
+                const defaultIcon = `<i class="fa-solid fa-user"></i>`;
+                document.getElementById('header-avatar').innerHTML = defaultIcon;
+                document.getElementById('settings-avatar').innerHTML = defaultIcon;
+            }
+        }
+
+        async function refreshUserData() {
+            try {
+                const res = await fetch(`${API_URL}/user/login`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({phone: currentUser.phone, pin: currentUser.pin})
+                });
+                if(res.ok) {
+                    currentUser = await res.json();
+                    loadOverview();
+                    updateDashboardUI();
+                    alert('Data refreshed successfully!');
+                }
+            } catch(e) { alert('Failed to refresh.'); }
+        }
+
+        async function loadOverview() {
+            if(!currentUser) return;
+            document.getElementById('overview-balance').innerText = `₦${currentUser.balance.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            document.getElementById('overview-acc').innerText = currentUser.accountNo || 'N/A';
+            const tier = currentUser.kycTier || 'Tier 1';
+            document.getElementById('overview-tier').innerText = tier;
+            document.getElementById('overview-max-b').innerText = tier === 'Tier 2' ? '₦500,000' : (tier === 'Tier 3' ? 'Unlimited' : '₦300,000');
+            document.getElementById('overview-daily').innerText = tier === 'Tier 2' ? '₦490,000' : (tier === 'Tier 3' ? '₦5,000,000' : '₦290,000');
+
+            try {
+                const res = await fetch(`${API_URL}/announcements/latest`);
+                const data = await res.json();
+                const text = Array.isArray(data) ? data.map(a => a.text).join('   ***   ') : (data.text || 'Welcome to PayDesktop Bank');
+                document.getElementById('announcement-text').innerText = text;
+            } catch(e) {}
+        }
+
+        async function verifyRecipient(acc) {
+            const lbl = document.getElementById('transfer-recipient-name');
+            const selectedBank = document.getElementById('transfer-bank').value;
+            if(acc.length === 10) {
+                if(selectedBank !== 'PayDesktop Bank') {
+                    lbl.innerText = `External Bank Transfer (${selectedBank})`;
+                    lbl.className = 'text-xs font-semibold mt-1 text-sky-400';
+                    return;
+                }
+                try {
+                    const res = await fetch(`${API_URL}/user/verify/${acc}`);
+                    const data = await res.json();
+                    if(data.found) {
+                        lbl.innerText = `Verified Recipient: ${data.fullName}`;
+                        lbl.className = 'text-xs font-semibold mt-1 text-emerald-400';
+                    } else {
+                        lbl.innerText = 'Account not found';
+                        lbl.className = 'text-xs font-semibold mt-1 text-red-400';
+                    }
+                } catch(e) { lbl.innerText = ''; }
+            } else {
+                lbl.innerText = '';
+            }
+        }
+
+        function promptPinForTransfer() {
+            const acc = document.getElementById('transfer-acc').value.trim();
+            const amt = document.getElementById('transfer-amt').value.trim();
+            if(!acc || !amt) return alert('Enter recipient account and amount.');
+            
+            pendingActionCallback = executeTransfer;
+            openModal('pin-modal');
+        }
+
+        async function executeTransfer() {
+            const bank = document.getElementById('transfer-bank').value;
+            const acc = document.getElementById('transfer-acc').value.trim();
+            const amt = document.getElementById('transfer-amt').value.trim();
+            const note = document.getElementById('transfer-note').value.trim();
+            const pin = document.getElementById('auth-pin-input').value.trim();
+
+            try {
+                const res = await fetch(`${API_URL}/user/transfer`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        senderPhone: currentUser.phone,
+                        bank,
+                        recipientAccount: acc,
+                        amount: parseFloat(amt),
+                        pin,
+                        note
+                    })
+                });
+                const data = await res.json();
+                if(res.ok) {
+                    alert(data.message || 'Transfer successful!');
+                    currentUser.balance = data.newBalance !== undefined ? data.newBalance : currentUser.balance - parseFloat(amt);
+                    document.getElementById('transfer-acc').value = '';
+                    document.getElementById('transfer-amt').value = '';
+                    document.getElementById('transfer-note').value = '';
+                    document.getElementById('transfer-recipient-name').innerText = '';
+                    switchTab('overview', document.querySelectorAll('.nav-btn')[0]);
+                } else {
+                    alert(data.message || 'Transfer failed.');
+                }
+            } catch(e) { alert('Error: ' + e.message); }
+        }
+
+        async function loadBeneficiaries() {
+            if(!currentUser) return;
+            const container = document.getElementById('beneficiaries-list');
+            try {
+                const res = await fetch(`${API_URL}/user/beneficiaries/${currentUser.phone}`);
+                const list = await res.json();
+                if(!res.ok || list.length === 0) {
+                    container.innerHTML = '<p class="text-xs text-slate-500">No beneficiaries saved yet.</p>';
+                    return;
+                }
+                container.innerHTML = list.map(b => `
+                    <div onclick="document.getElementById('transfer-acc').value='${b.accountNumber}'; verifyRecipient('${b.accountNumber}');" class="bg-slate-950 border border-slate-800 p-3 rounded-xl cursor-pointer hover:border-blue-500 transition">
+                        <h4 class="font-bold text-xs text-slate-200">${b.name}</h4>
+                        <p class="text-[11px] font-mono text-sky-400 mt-0.5">${b.accountNumber}</p>
+                    </div>
+                `).join('');
+            } catch(e) { container.innerHTML = '<p class="text-xs text-slate-500">Failed to load beneficiaries.</p>'; }
+        }
+
+        async function loadHistory() {
+            if(!currentUser) return;
+            const container = document.getElementById('history-list');
+            try {
+                const res = await fetch(`${API_URL}/user/transactions/${currentUser.phone}`);
+                const txs = await res.json();
+                cachedTransactions = txs;
+                if(!res.ok || txs.length === 0) {
+                    container.innerHTML = '<p class="text-xs text-slate-500">No transactions found.</p>';
+                    return;
+                }
+                container.innerHTML = txs.map(t => `
+                    <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center justify-between text-xs shadow-md">
+                        <div>
+                            <span class="font-bold text-blue-400">${t.type}</span> - ₦${t.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}
+                            <p class="text-[11px] text-slate-400 mt-0.5">${t.note || 'No note'} | ID: ${t.tx_id || 'N/A'}</p>
+                        </div>
+                        <span class="text-[11px] text-slate-500">${t.date ? t.date.slice(0, 10) : ''}</span>
+                    </div>
+                `).join('');
+            } catch(e) { container.innerHTML = '<p class="text-xs text-slate-500">Error loading history.</p>'; }
+        }
+
+        function downloadStatement() {
+            if(!cachedTransactions || cachedTransactions.length === 0) return alert('No transactions to export.');
+            let content = `=== PAYDESKTOP BANK STATEMENT ===\nCustomer: ${currentUser.name}\nAccount: ${currentUser.accountNo}\nDate: ${new Date().toISOString().slice(0,10)}\n\n`;
+            cachedTransactions.forEach(t => {
+                content += `[${t.date ? t.date.slice(0,10) : ''}] ${t.type} - ₦${t.amount} | Note: ${t.note || ''}\n`;
+            });
+            const blob = new Blob([content], {type: 'text/plain'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Statement_${currentUser.accountNo}.txt`;
+            a.click();
+        }
+
+        function loadSettings() {
+            if(!currentUser) return;
+            document.getElementById('settings-phone').value = currentUser.phone;
+            document.getElementById('settings-email').value = currentUser.email || '';
+            if(currentUser.avatar) {
+                const imgHtml = `<img src="${currentUser.avatar}" class="w-full h-full object-cover">`;
+                document.getElementById('settings-avatar').innerHTML = imgHtml;
+            }
+        }
+
+        async function updateProfile(e) {
+            e.preventDefault();
+            const newPhone = document.getElementById('settings-phone').value.trim();
+            const newEmail = document.getElementById('settings-email').value.trim();
+            const newPin = document.getElementById('settings-pin').value.trim();
+
+            try {
+                const res = await fetch(`${API_URL}/user/profile/update`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        currentPhone: currentUser.phone,
+                        newPhone,
+                        newEmail,
+                        newPin: newPin || null,
+                        avatar: currentUser.avatar || null
+                    })
+                });
+                const data = await res.json();
+                if(res.ok) {
+                    alert('Profile updated successfully!');
+                    currentUser.phone = newPhone;
+                    currentUser.email = newEmail;
+                    if(newPin) currentUser.pin = newPin;
+                    updateDashboardUI();
+                } else {
+                    alert(data.message || 'Update failed.');
+                }
+            } catch(e) { alert('Error: ' + e.message); }
+        }
+
+        async function uploadProfilePicture(e) {
+            const file = e.target.files[0];
+            if(file) {
+                const reader = new FileReader();
+                reader.onload = async function(evt) {
+                    const base64Image = evt.target.result;
+                    currentUser.avatar = base64Image;
+                    
+                    try {
+                        await fetch(`${API_URL}/user/profile/update`, {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({
+                                currentPhone: currentUser.phone,
+                                newPhone: currentUser.phone,
+                                newEmail: currentUser.email || '',
+                                avatar: base64Image
+                            })
+                        });
+                    } catch(err) {}
+
+                    updateDashboardUI();
+                    alert('Profile picture uploaded and saved to your account!');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        async function loadChat() {
+            if(!currentUser) return;
+            const container = document.getElementById('chat-messages');
+            try {
+                const res = await fetch(`${API_URL}/chat/${currentUser.phone}`);
+                const msgs = await res.json();
+                if(!res.ok || msgs.length === 0) {
+                    container.innerHTML = '<p class="text-xs text-slate-500 text-center py-4">No messages yet. Start a conversation with support!</p>';
+                    return;
+                }
+                container.innerHTML = msgs.map(m => {
+                    const isUser = m.senderRole === 'user';
+                    return `
+                        <div class="flex flex-col ${isUser ? 'items-end' : 'items-start'}">
+                            <div class="max-w-[80%] rounded-xl px-4 py-2.5 text-xs ${isUser ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-200 border border-slate-700'}">
+                                <span class="font-bold text-[10px] block opacity-75 uppercase mb-0.5">${m.senderRole}</span>
+                                ${m.message}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                container.scrollTop = container.scrollHeight;
+            } catch(e) { container.innerHTML = '<p class="text-xs text-red-500 text-center">Error loading chat.</p>'; }
+        }
+
+        async function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            if(!message) return;
+
+            try {
+                const res = await fetch(`${API_URL}/chat/send`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        userPhone: currentUser.phone,
+                        senderRole: 'user',
+                        message
+                    })
+                });
+                if(res.ok) {
+                    input.value = '';
+                    loadChat();
+                }
+            } catch(e) { alert('Failed to send message.'); }
+        }
+
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+            if(id === 'card-modal') loadCardModalContent();
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+            if(id === 'pin-modal') {
+                document.getElementById('auth-pin-input').value = '';
+                pendingActionCallback = null;
+            }
+        }
+
+        function closePinModal() { closeModal('pin-modal'); }
+
+        function confirmPinAction() {
+            const pin = document.getElementById('auth-pin-input').value.trim();
+            if(!pin || pin.length !== 4) return alert('Enter valid 4-digit PIN.');
+            closeModal('pin-modal');
+            if(pendingActionCallback) pendingActionCallback();
+        }
+
+        async function submitAirtime() {
+            const network = document.getElementById('airtime-net').value;
+            const phone = document.getElementById('airtime-phone').value.trim();
+            const amount = document.getElementById('airtime-amt').value.trim();
+            if(!phone || !amount) return alert('Fill all fields.');
+
+            pendingActionCallback = async () => {
+                const pin = document.getElementById('auth-pin-input').value.trim();
+                try {
+                    const res = await fetch(`${API_URL}/user/airtime`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({phone: currentUser.phone, network, bumberOrPhone: phone, amount: parseFloat(amount), pin})
+                    });
+                    const data = await res.json();
+                    if(res.ok) {
+                        alert(data.message || 'Airtime purchased successfully!');
+                        currentUser.balance = data.newBalance !== undefined ? data.newBalance : currentUser.balance - parseFloat(amount);
+                        closeModal('airtime-modal');
+                        loadOverview();
+                    } else { alert(data.message || 'Failed.'); }
+                } catch(e) { alert('Error: ' + e.message); }
+            };
+            closeModal('airtime-modal');
+            openModal('pin-modal');
+        }
+
+        async function submitBetting() {
+            const provider = document.getElementById('betting-prov').value;
+            const customerId = document.getElementById('betting-cid').value.trim();
+            const amount = document.getElementById('betting-amt').value.trim();
+            if(!customerId || !amount) return alert('Fill all fields.');
+
+            pendingActionCallback = async () => {
+                const pin = document.getElementById('auth-pin-input').value.trim();
+                try {
+                    const res = await fetch(`${API_URL}/user/betting`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({phone: currentUser.phone, provider, customerId, amount: parseFloat(amount), pin})
+                    });
+                    const data = await res.json();
+                    if(res.ok) {
+                        alert(data.message || 'Betting account funded successfully!');
+                        currentUser.balance = data.newBalance !== undefined ? data.newBalance : currentUser.balance - parseFloat(amount);
+                        closeModal('betting-modal');
+                        loadOverview();
+                    } else { alert(data.message || 'Failed.'); }
+                } catch(e) { alert('Error: ' + e.message); }
+            };
+            closeModal('betting-modal');
+            openModal('pin-modal');
+        }
+
+        async function loadCardModalContent() {
+            const container = document.getElementById('card-content');
+            const status = currentUser.cardStatus || 'NOT_REQUESTED';
+            if(status === 'ASSIGNED' && currentUser.cardDetails) {
+                container.innerHTML = `
+                    <div class="bg-gradient-to-r from-blue-900 to-indigo-900 p-4 rounded-xl border border-blue-500/30 text-left text-white space-y-2 mb-4 shadow-lg">
+                        <div class="flex justify-between items-center"><span class="text-[10px] uppercase font-bold text-blue-300">PayDesktop Card</span><i class="fa-solid fa-wifi text-xs"></i></div>
+                        <p class="font-mono text-sm tracking-widest">${currentUser.cardDetails.cardNumber}</p>
+                        <div class="flex justify-between text-[11px] text-slate-300"><span>Exp: ${currentUser.cardDetails.expiry}</span><span>CVV: ${currentUser.cardDetails.cvv}</span></div>
+                    </div>
+                    <p class="text-xs text-emerald-400 font-semibold">Active ATM Card Assigned</p>
+                `;
+            } else if(status === 'PENDING') {
+                container.innerHTML = `<p class="text-xs text-amber-400 font-semibold mb-3">Card Request Pending Admin Approval.</p>`;
+            } else {
+                container.innerHTML = `
+                    <p class="text-xs text-slate-400 mb-4">You do not have an active ATM card.</p>
+                    <button onclick="requestCard()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-semibold transition">Request Physical / Virtual Card</button>
+                `;
+            }
+        }
+
+        async function requestCard() {
+            try {
+                const res = await fetch(`${API_URL}/user/request-card`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({phone: currentUser.phone})
+                });
+                const data = await res.json();
+                if(res.ok) {
+                    alert('Card request submitted successfully!');
+                    currentUser.cardStatus = 'PENDING';
+                    closeModal('card-modal');
+                } else { alert(data.message || 'Failed.'); }
+            } catch(e) { alert('Error: ' + e.message); }
+        }
+    </script>
+</body>
+</html>

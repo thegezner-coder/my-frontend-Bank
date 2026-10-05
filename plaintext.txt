@@ -1,0 +1,9 @@
+my-frontend-Bank/
+├── models/
+│   ├── User.js
+│   └── Transaction.js
+├── views/
+│   ├── login.ejs
+│   └── admin/
+│       └── requests.ejs
+├── server.js (or server_4.js)
